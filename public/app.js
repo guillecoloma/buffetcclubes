@@ -202,7 +202,7 @@ document.addEventListener('keydown', function(e) { const modales = ['modal-apert
 async function confirmarVenta() { if (!cajaActualId) return; const res = await fetch('/confirmar-venta', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ items: carrito, metodoPago: metodoSeleccionado, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); const data = await res.json(); if(data.success) { generarTicketVenta(); setTimeout(() => { window.print(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); cargarProductos(); document.getElementById('ticket-impresion').style.display = 'none'; document.getElementById('buscador').focus(); }, 500); } }
 
 // =========================================================
-// TICKET TÉRMICO CON CORTE DE PAPEL
+// TICKET ORIGINAL - TODO EN UNA SOLA TIRA CONTINUA
 // =========================================================
 function generarTicketVenta() { 
     const t = document.getElementById('ticket-impresion'); 
@@ -214,53 +214,38 @@ function generarTicketVenta() {
     
     let htmlTicket = ''; 
     
-    // TICKET BEBIDAS (BARRA)
     if (bebidas.length > 0) { 
         let itemsBebida = bebidas.map(x => { 
             totalGeneral += (x.precio*x.cantidad); 
             return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; 
         }).join(''); 
-        htmlTicket += `
-            <div class="ticket-section">
-                <div class="ticket-title">TICKET BEBIDA 🥤</div>
-                <div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>
-                ${itemsBebida}
-            </div>
-            <div class="cut-line">✂ - CORTE AQUI - ✂</div>`; 
+        htmlTicket += `<div class="ticket-section"><div class="ticket-title">TICKET BEBIDA 🥤</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsBebida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
     } 
     
-    // TICKET COMIDAS (COCINA)
     if (comidas.length > 0) { 
         let itemsComida = comidas.map(x => { 
             totalGeneral += (x.precio*x.cantidad); 
             return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; 
         }).join(''); 
-        htmlTicket += `
-            <div class="ticket-section">
-                <div class="ticket-title">TICKET COMIDA 🍔</div>
-                <div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>
-                ${itemsComida}
-            </div>
-            <div class="cut-line">✂ - CORTE AQUI - ✂</div>`; 
+        htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET COMIDA 🍔</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsComida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
     } 
     
     otros.forEach(x => { totalGeneral += (x.precio*x.cantidad); }); 
     
-    // TICKET CLIENTE (COMPROBANTE GENERAL)
     htmlTicket += `
         <div style="margin-top:10px; text-align:center;">
-            <h3 style="margin:0; font-size:16px; font-weight:bold;">${usuarioActual.club_nombre}</h3>
-            <p style="margin:0; font-size:12px;">${usuarioActual.deporte_nombre}</p>
+            <h3 style="margin:0; font-size:14px; font-weight:bold;">${usuarioActual.club_nombre}</h3>
+            <p style="margin:0; font-size:10px;">${usuarioActual.deporte_nombre}</p>
         </div>
-        <div style="margin-top:10px; font-size:14px;">
+        <div style="margin-top:10px; font-size:11px;">
             <p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p>
             <p style="margin:2px 0;"><b>PAGO:</b> ${metodoSeleccionado.toUpperCase()}</p>
             <p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p>
         </div>
-        <div style="border-top:2px solid #000; margin-top:10px; padding-top:5px; display:flex; justify-content:space-between; font-size:20px; font-weight:900;">
+        <div style="border-top:2px solid #000; margin-top:10px; padding-top:5px; display:flex; justify-content:space-between; font-size:18px; font-weight:900;">
             <span>TOTAL</span><span>$${totalGeneral}</span>
         </div>
-        <p style="text-align:center; font-size:10px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>
+        <p style="text-align:center; font-size:9px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>
     `; 
     
     t.style.display = 'block'; 

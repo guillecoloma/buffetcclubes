@@ -16,9 +16,10 @@
         #contenedor-historial.abierto { max-height: 1000px; opacity: 1; margin-top: 2rem; }
 
         /* ========================================================
-           OPTIMIZACIÓN EXTREMA PARA IMPRESORA TÉRMICA (POS-80)
+           TICKET CONTINUO (COMO ESTABA AL PRINCIPIO)
            ======================================================== */
         @media print {
+            @page { margin: 0; } /* Evita que Chrome corte en hojas separadas */
             .no-print { display: none !important; }
             body { 
                 background: white !important; 
@@ -29,45 +30,38 @@
             }
             #ticket-impresion { 
                 display: block !important; 
-                width: 76mm !important; /* Ancho real del área de impresión de 80mm */
+                width: 76mm !important; 
                 margin: 0; 
-                padding: 0; 
-                font-family: 'Courier New', Courier, monospace !important; /* Fuente universal y equiespaciada */
+                padding: 0 2mm 10mm 2mm; 
+                font-family: 'Courier New', Courier, monospace !important; 
                 color: #000 !important; 
-                font-size: 14px !important; 
-                font-weight: bold !important; /* Forzamos negrita para mejor lectura térmica */
-                
-                /* ELIMINAR EL BORROSO (ANTI-ALIASING) */
+                font-size: 13px !important; 
+                font-weight: bold !important; 
                 -webkit-font-smoothing: none !important; 
                 font-smooth: never !important;
-                text-rendering: optimizeSpeed !important; 
             }
             .ticket-section { 
-                padding-bottom: 5px; 
+                border-bottom: 2px dashed #000; 
+                padding-bottom: 10px; 
+                margin-bottom: 10px; 
             }
             .ticket-title { 
-                font-size: 18px; 
+                font-size: 16px; 
                 font-weight: 900; 
                 text-align: center; 
                 margin: 0 0 10px 0; 
                 text-transform: uppercase;
-                border-bottom: 2px solid #000;
-                padding-bottom: 5px;
             }
             .ticket-item { 
                 display: flex; 
                 justify-content: space-between; 
-                margin-bottom: 6px; 
-                font-size: 15px; /* Letra un poco más grande en los items */
+                margin-bottom: 4px; 
             }
-            /* ESTO LE DICE A LA IMPRESORA QUE CORTE EL PAPEL */
             .cut-line { 
                 text-align: center; 
-                font-size: 12px; 
-                padding: 15px 0 5px 0; 
+                font-size: 10px; 
+                padding: 10px 0; 
                 font-weight: bold; 
-                page-break-after: always !important; /* Salto de página = Corte de guillotina */
-                break-after: page !important; 
             }
         }
     </style>
