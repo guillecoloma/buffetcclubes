@@ -17,6 +17,24 @@ function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
 
 // =========================================================
+// INICIALIZADOR: PERSISTENCIA DE SESIÓN (ANTI-F5)
+// =========================================================
+window.onload = () => {
+    const tokenGuardado = sessionStorage.getItem('pos_token');
+    const usuarioGuardado = sessionStorage.getItem('pos_user');
+    const cajaGuardada = sessionStorage.getItem('pos_caja');
+
+    if (tokenGuardado && usuarioGuardado) {
+        tokenGlobal = tokenGuardado;
+        usuarioActual = JSON.parse(usuarioGuardado);
+        cajaActualId = cajaGuardada !== "null" ? cajaGuardada : null;
+        
+        document.getElementById('pantalla-login').style.display = 'none'; 
+        configurarInterfazPorRol();
+    }
+};
+
+// =========================================================
 // AUTENTICACIÓN Y ROLES
 // =========================================================
 async function intentarLogin() {
@@ -29,6 +47,12 @@ async function intentarLogin() {
             usuarioActual = data.user; 
             cajaActualId = data.cajaAbierta; 
             tokenGlobal = data.token; 
+            
+            // GUARDAMOS EN LA MEMORIA DEL NAVEGADOR
+            sessionStorage.setItem('pos_token', data.token);
+            sessionStorage.setItem('pos_user', JSON.stringify(data.user));
+            sessionStorage.setItem('pos_caja', data.cajaAbierta);
+
             document.getElementById('pantalla-login').style.display = 'none'; 
             configurarInterfazPorRol(); 
         } else { alert(data.mensaje); }
@@ -75,7 +99,11 @@ function configurarInterfazPorRol() {
     }
 }
 
-function cerrarSesion() { tokenGlobal = null; window.location.reload(); }
+function cerrarSesion() { 
+    tokenGlobal = null; 
+    sessionStorage.clear(); // Limpiamos la memoria al salir
+    window.location.reload(); 
+}
 
 // =========================================================
 // NAVEGACIÓN DE PANTALLAS
@@ -180,7 +208,7 @@ async function eliminarMovimiento(id) { if(confirm("¿Seguro que deseas eliminar
 // =========================================================
 // TERMINAL POS Y CARRITO
 // =========================================================
-async function abrirCaja() { const m = document.getElementById('monto-apertura').value; if(m === '') return alert("Ingresa monto inicial"); const res = await fetch('/abrir-caja', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ usuario_id: usuarioActual.id, monto_inicial: parseFloat(m), club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); const data = await res.json(); if(data.success) { cajaActualId = data.cajaId; cerrarModalGenerico('modal-apertura'); cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); } }
+async function abrirCaja() { const m = document.getElementById('monto-apertura').value; if(m === '') return alert("Ingresa monto inicial"); const res = await fetch('/abrir-caja', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ usuario_id: usuarioActual.id, monto_inicial: parseFloat(m), club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); const data = await res.json(); if(data.success) { cajaActualId = data.cajaId; sessionStorage.setItem('pos_caja', cajaActualId); cerrarModalGenerico('modal-apertura'); cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); } }
 
 function filtrarCategoria(cat) { categoriaActiva = cat; ['TODOS', 'COMIDA', 'BEBIDA', 'OTROS'].forEach(c => { const btn = document.getElementById(`cat-${c}`); if(c === cat) btn.className = "shrink-0 bg-slate-800 text-white px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm transition-all text-[9px] lg:text-xs"; else btn.className = "shrink-0 bg-white text-slate-500 border border-slate-200 px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all text-[9px] lg:text-xs uppercase"; }); aplicarFiltros(); document.getElementById('buscador').focus(); }
 function aplicarFiltros() { const txt = document.getElementById('buscador').value.toLowerCase(); const filtrados = listaProductosGlobal.filter(p => { const matchTxt = p.nombre.toLowerCase().includes(txt); const matchCat = categoriaActiva === 'TODOS' || p.categoria === categoriaActiva; return matchTxt && matchCat; }); renderizarProductos(filtrados); }
@@ -226,9 +254,6 @@ function setMetodo(m) { metodoSeleccionado = m; document.getElementById('pago-ef
 
 document.addEventListener('keydown', function(e) { const modales = ['modal-apertura', 'modal-clubes', 'modal-deportes', 'modal-usuarios', 'modal-producto', 'modal-gasto', 'modal-cierre', 'modal-movimiento', 'modal-qr']; const algunModalAbierto = modales.some(id => document.getElementById(id) && document.getElementById(id).classList.contains('flex')); if(algunModalAbierto) return; if (e.key === 'F1') { e.preventDefault(); setMetodo('Efectivo'); } if (e.key === 'F2') { e.preventDefault(); setMetodo('Transferencia'); } if (e.key === 'Escape') { e.preventDefault(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); document.getElementById('buscador').focus(); } if (e.key === 'Enter') { if(document.activeElement.id === 'input-paga-con' || document.activeElement.id === 'input-codigo-despacho') return; if (carrito.length > 0 && !document.getElementById('btn-confirmar').disabled) { e.preventDefault(); confirmarVenta(); } } });
 
-// =========================================================
-// NUEVA LÓGICA DE CONFIRMACIÓN (SOPORTA DESPACHO)
-// =========================================================
 async function confirmarVenta() { 
     if (!cajaActualId || carrito.length === 0) return; 
     
@@ -263,7 +288,7 @@ async function confirmarVenta() {
                 }, 500); 
             }
         } else {
-            alert("Error al procesar la venta");
+            alert(data.error || "Error al procesar la venta");
         }
     } catch(e) { alert("Error de conexión"); }
     
@@ -280,7 +305,6 @@ function limpiarVentaExitosa() {
     document.getElementById('buscador').focus();
 }
 
-// LÓGICA DEL QR
 function mostrarModalQR(codigo) {
     document.getElementById('qr-codigo-texto').innerText = codigo;
     const container = document.getElementById('qr-container');
@@ -301,21 +325,15 @@ function cerrarModalQR() {
     limpiarVentaExitosa();
 }
 
-// =========================================================
-// PANTALLA DE DESPACHO CON HISTORIAL (MOSTRADOR)
-// =========================================================
 function verDespacho() {
     document.getElementById('panel-dashboard').classList.add('hidden');
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.remove('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
-    
-    // CARGAMOS AMBAS COLUMNAS
     cargarTodoDespacho();
     setTimeout(() => document.getElementById('input-codigo-despacho').focus(), 300);
 }
 
-// FUNCIÓN MAESTRA QUE ACTUALIZA LAS DOS COLUMNAS DE DESPACHO
 async function cargarTodoDespacho() {
     cargarPendientesDespacho();
     cargarEntregadosDespacho();
@@ -345,7 +363,6 @@ async function cargarPendientesDespacho() {
     `).join('');
 }
 
-// NUEVA FUNCIÓN: CARGAR HISTORIAL DE ENTREGADOS RECIENTES
 async function cargarEntregadosDespacho() {
     const res = await fetch(`/despacho/entregados/${usuarioActual.deporte_id}`, { headers: authH() });
     const ventas = await res.json();
@@ -407,13 +424,10 @@ async function buscarTicketDespacho() {
 async function entregarPedido(id) {
     await fetch(`/despacho/entregar/${id}`, { method: 'PUT', headers: authH() });
     document.getElementById('resultado-escaneo').classList.add('hidden');
-    cargarTodoDespacho(); // ACTUALIZA PENDIENTES Y ENTREGADOS A LA VEZ
+    cargarTodoDespacho(); 
     document.getElementById('input-codigo-despacho').focus();
 }
 
-// =========================================================
-// IMPRESIÓN DE TICKETS ORIGINAL 
-// =========================================================
 function generarTicketVenta() { 
     const t = document.getElementById('ticket-impresion'); 
     const fechaStr = new Date().toLocaleString('es-AR'); 
@@ -473,9 +487,6 @@ function generarTicketVenta() {
 function abrirModalGasto() { if(!cajaActualId) return alert("Abre caja primero"); document.getElementById('gasto-desc').value=''; document.getElementById('gasto-monto').value=''; abrirModal('modal-gasto'); }
 async function guardarGasto() { const d = document.getElementById('gasto-desc').value, m = document.getElementById('gasto-monto').value; if(!d || !m) return; await fetch('/gastos', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ descripcion: d, monto: m, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); cerrarModalGenerico('modal-gasto'); cargarHistoriales(); }
 
-// =========================================================
-// HISTORIAL CON INDICADOR MÓVIL
-// =========================================================
 async function cargarHistoriales() { 
     if(!cajaActualId) return; 
     const resV = await fetch(`/historial-ventas/${cajaActualId}`, {headers:authH()}); 

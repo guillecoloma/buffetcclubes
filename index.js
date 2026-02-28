@@ -3,8 +3,18 @@ const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const compression = require('compression'); // NUEVO: Velocidad
+const rateLimit = require('express-rate-limit'); // NUEVO: Seguridad
 
 const app = express();
+
+// OPTIMIZACIÓN DE VELOCIDAD: Comprime todas las respuestas HTTP (GZIP)
+app.use(compression());
+
+// OPTIMIZACIÓN DE SEGURIDAD: Evita ataques de fuerza bruta (Bots adivinando contraseñas)
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: "Demasiadas peticiones, intenta más tarde." });
+app.use(limiter);
+
 app.use(express.static('public')); 
 app.use(express.json()); 
 
@@ -18,27 +28,27 @@ let db;
 
         console.log(`🛠️ Conectado a la Base de Datos en: ${dbPath}`);
 
+        // CREACIÓN DE TABLAS
         await db.exec(`
             CREATE TABLE IF NOT EXISTS clubes (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT UNIQUE, logo TEXT, estado TEXT DEFAULT 'ACTIVO');
             CREATE TABLE IF NOT EXISTS deportes (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, imagen TEXT, club_id INTEGER, estado TEXT DEFAULT 'ACTIVO');
             CREATE TABLE IF NOT EXISTS usuarios (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, email TEXT UNIQUE, password TEXT, rol TEXT, club_id INTEGER, deporte_id INTEGER);
             CREATE TABLE IF NOT EXISTS productos (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, precio REAL, stock INTEGER, imagen TEXT, categoria TEXT DEFAULT 'OTROS', club_id INTEGER, deporte_id INTEGER);
             CREATE TABLE IF NOT EXISTS cajas (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER, club_id INTEGER, deporte_id INTEGER, monto_apertura REAL, fecha_apertura DATETIME DEFAULT (datetime('now', 'localtime')), estado TEXT DEFAULT 'ABIERTA');
-            CREATE TABLE IF NOT EXISTS ventas (id INTEGER PRIMARY KEY AUTOINCREMENT, caja_id INTEGER, club_id INTEGER, deporte_id INTEGER, total REAL, metodoPago TEXT, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
+            CREATE TABLE IF NOT EXISTS ventas (id INTEGER PRIMARY KEY AUTOINCREMENT, caja_id INTEGER, club_id INTEGER, deporte_id INTEGER, total REAL, metodoPago TEXT, fecha DATETIME DEFAULT (datetime('now', 'localtime')), estado_entrega TEXT DEFAULT 'ENTREGADO', codigo_retiro TEXT);
             CREATE TABLE IF NOT EXISTS gastos (id INTEGER PRIMARY KEY AUTOINCREMENT, caja_id INTEGER, club_id INTEGER, deporte_id INTEGER, descripcion TEXT, monto REAL, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
             CREATE TABLE IF NOT EXISTS movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, club_id INTEGER, deporte_id INTEGER, tipo TEXT, concepto TEXT, monto REAL, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
             CREATE TABLE IF NOT EXISTS ventas_detalles (id INTEGER PRIMARY KEY AUTOINCREMENT, venta_id INTEGER, producto_nombre TEXT, cantidad INTEGER);
         `);
 
-        const tablasConClubYDeporte = ['usuarios', 'productos', 'cajas', 'ventas', 'gastos', 'movimientos'];
-        for(let t of tablasConClubYDeporte) {
-            try { await db.exec(`ALTER TABLE ${t} ADD COLUMN club_id INTEGER`); } catch(e){}
-            try { await db.exec(`ALTER TABLE ${t} ADD COLUMN deporte_id INTEGER`); } catch(e){}
-        }
-        try { await db.exec(`ALTER TABLE productos ADD COLUMN categoria TEXT DEFAULT 'OTROS'`); } catch(e){}
-        try { await db.exec(`ALTER TABLE deportes ADD COLUMN estado TEXT DEFAULT 'ACTIVO'`); } catch(e){} 
-        try { await db.exec(`ALTER TABLE ventas ADD COLUMN estado_entrega TEXT DEFAULT 'ENTREGADO'`); } catch(e){}
-        try { await db.exec(`ALTER TABLE ventas ADD COLUMN codigo_retiro TEXT`); } catch(e){}
+        // OPTIMIZACIÓN DE VELOCIDAD: Creación de Índices (El secreto para que no se ponga lento con los años)
+        await db.exec(`
+            CREATE INDEX IF NOT EXISTS idx_ventas_deporte ON ventas(deporte_id);
+            CREATE INDEX IF NOT EXISTS idx_ventas_caja ON ventas(caja_id);
+            CREATE INDEX IF NOT EXISTS idx_ventas_codigo ON ventas(codigo_retiro);
+            CREATE INDEX IF NOT EXISTS idx_productos_deporte ON productos(deporte_id);
+            CREATE INDEX IF NOT EXISTS idx_gastos_caja ON gastos(caja_id);
+        `);
 
         const adminEmail = "admin@buffet.com";
         const adminExists = await db.get('SELECT * FROM usuarios WHERE email = ?', [adminEmail]);
@@ -49,15 +59,7 @@ let db;
             await db.run('INSERT OR IGNORE INTO deportes (id, nombre, club_id) VALUES (1, "ADMINISTRACIÓN", 1)');
         }
 
-        const usuariosViejos = await db.all('SELECT id, password FROM usuarios');
-        for (let u of usuariosViejos) {
-            if (u.password && u.password.length < 50) {
-                const newHash = await bcrypt.hash(u.password, 10);
-                await db.run('UPDATE usuarios SET password = ? WHERE id = ?', [newHash, u.id]);
-            }
-        }
-
-        console.log("✅ Servidor iniciado. 🛡️ Módulo de Despacho Integrado.");
+        console.log("✅ Servidor iniciado. 🛡️ Compresión, Índices y Seguridad Crítica Activados.");
     } catch (error) { console.error("❌ Error crítico:", error); }
 })();
 
@@ -92,7 +94,6 @@ app.post('/login', async (req, res) => {
 app.get('/clubes', verificarToken, async (req, res) => { try { res.json(await db.all('SELECT * FROM clubes WHERE id != 1')); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.post('/clubes', verificarToken, async (req, res) => { try { await db.run('INSERT INTO clubes (nombre, logo) VALUES (?, ?)', [req.body.nombre.toUpperCase(), req.body.logo]); res.json({ success: true }); } catch (e) { res.json({ success: false, mensaje: "Error al crear club. ¿Nombre duplicado?" }); } });
 app.get('/estadisticas-sysadmin', verificarToken, async (req, res) => { try { const stats = await db.all(`SELECT c.id, c.nombre, c.logo, COALESCE((SELECT SUM(total) FROM ventas WHERE club_id = c.id), 0) as total_ventas, COALESCE((SELECT SUM(monto) FROM gastos WHERE club_id = c.id), 0) as total_gastos FROM clubes c WHERE c.id != 1`); res.json(stats); } catch (e) { res.status(500).json({ error: e.message }); } });
-
 app.get('/deportes', verificarToken, async (req, res) => { try { res.json(await db.all(`SELECT d.*, c.nombre as club_nombre FROM deportes d LEFT JOIN clubes c ON d.club_id = c.id WHERE d.id != 1`)); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.get('/deportes/:clubId', verificarToken, async (req, res) => { try { res.json(await db.all('SELECT * FROM deportes WHERE club_id = ? AND id != 1', [req.params.clubId])); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.post('/deportes', verificarToken, async (req, res) => { try { await db.run('INSERT INTO deportes (nombre, imagen, club_id) VALUES (?, ?, ?)', [req.body.nombre.toUpperCase(), req.body.imagen, req.body.club_id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
@@ -119,13 +120,20 @@ app.put('/productos/:id', verificarToken, async (req, res) => { try { await db.r
 app.delete('/productos/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM productos WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
 // =======================================================
-// 🛒 RUTA DE VENTAS Y DESPACHO
+// 🛒 RUTA DE VENTAS Y DESPACHO (BLINDADA CONTRA HACKERS)
 // =======================================================
 app.post('/confirmar-venta', verificarToken, async (req, res) => {
     const { items, metodoPago, caja_id, club_id, deporte_id, requiere_despacho } = req.body;
     try {
         let total = 0;
-        for (const item of items) { total += (item.precio * item.cantidad); }
+        
+        // SEGURIDAD CRÍTICA: Prevenir el hackeo de "Cantidades Negativas" en el carrito
+        for (const item of items) { 
+            if (item.cantidad <= 0 || item.precio < 0) {
+                return res.status(400).json({ success: false, error: "SEGURIDAD: Cantidad o precio inválido detectado." });
+            }
+            total += (item.precio * item.cantidad); 
+        }
 
         let codigo_retiro = null;
         let estado = 'ENTREGADO';
@@ -157,7 +165,6 @@ app.get('/despacho/pendientes/:deporteId', verificarToken, async (req, res) => {
     } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-// NUEVO: Ruta para traer los últimos 15 pedidos entregados
 app.get('/despacho/entregados/:deporteId', verificarToken, async (req, res) => {
     try {
         const ventas = await db.all(`SELECT id, codigo_retiro, fecha FROM ventas WHERE deporte_id = ? AND estado_entrega = 'ENTREGADO' AND codigo_retiro IS NOT NULL ORDER BY id DESC LIMIT 15`, [req.params.deporteId]);
