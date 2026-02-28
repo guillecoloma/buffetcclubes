@@ -202,7 +202,7 @@ document.addEventListener('keydown', function(e) { const modales = ['modal-apert
 async function confirmarVenta() { if (!cajaActualId) return; const res = await fetch('/confirmar-venta', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ items: carrito, metodoPago: metodoSeleccionado, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); const data = await res.json(); if(data.success) { generarTicketVenta(); setTimeout(() => { window.print(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); cargarProductos(); document.getElementById('ticket-impresion').style.display = 'none'; document.getElementById('buscador').focus(); }, 500); } }
 
 // =========================================================
-// TICKET ORIGINAL - TODO EN UNA SOLA TIRA CONTINUA
+// TICKET ORIGINAL - CON PRECIOS POR ITEM A LA DERECHA
 // =========================================================
 function generarTicketVenta() { 
     const t = document.getElementById('ticket-impresion'); 
@@ -216,21 +216,30 @@ function generarTicketVenta() {
     
     if (bebidas.length > 0) { 
         let itemsBebida = bebidas.map(x => { 
-            totalGeneral += (x.precio*x.cantidad); 
-            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; 
+            let subtotal = x.precio * x.cantidad;
+            totalGeneral += subtotal; 
+            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; 
         }).join(''); 
         htmlTicket += `<div class="ticket-section"><div class="ticket-title">TICKET BEBIDA 🥤</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsBebida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
     } 
     
     if (comidas.length > 0) { 
         let itemsComida = comidas.map(x => { 
-            totalGeneral += (x.precio*x.cantidad); 
-            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; 
+            let subtotal = x.precio * x.cantidad;
+            totalGeneral += subtotal; 
+            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; 
         }).join(''); 
         htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET COMIDA 🍔</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsComida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
     } 
     
-    otros.forEach(x => { totalGeneral += (x.precio*x.cantidad); }); 
+    if (otros.length > 0) { 
+        let itemsOtros = otros.map(x => { 
+            let subtotal = x.precio * x.cantidad;
+            totalGeneral += subtotal; 
+            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; 
+        }).join(''); 
+        htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET VARIOS 🛒</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsOtros}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
+    }
     
     htmlTicket += `
         <div style="margin-top:10px; text-align:center;">
