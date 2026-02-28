@@ -68,7 +68,6 @@ function configurarInterfazPorRol() {
         document.getElementById('header-entidad-nombre').innerText = `${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}`;
         if(usuarioActual.deporte_logo) { document.getElementById('header-logo').src = usuarioActual.deporte_logo; document.getElementById('header-logo').classList.remove('hidden'); document.getElementById('logo-default').classList.add('hidden'); }
         
-        // ¡LA SOLUCIÓN ESTÁ AQUÍ! Le agregamos 'btn-pos-sport' al CAJERO para que siempre vea el botón de Vender y pueda volver.
         ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-despacho', 'btn-pos-sport'].forEach(id => document.getElementById(id).classList.remove('hidden'));
         
         document.getElementById('panel-pos').classList.remove('hidden');
@@ -444,7 +443,24 @@ function generarTicketVenta() {
 function abrirModalGasto() { if(!cajaActualId) return alert("Abre caja primero"); document.getElementById('gasto-desc').value=''; document.getElementById('gasto-monto').value=''; abrirModal('modal-gasto'); }
 async function guardarGasto() { const d = document.getElementById('gasto-desc').value, m = document.getElementById('gasto-monto').value; if(!d || !m) return; await fetch('/gastos', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ descripcion: d, monto: m, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); cerrarModalGenerico('modal-gasto'); cargarHistoriales(); }
 
-async function cargarHistoriales() { if(!cajaActualId) return; const resV = await fetch(`/historial-ventas/${cajaActualId}`, {headers:authH()}); const resG = await fetch(`/historial-gastos/${cajaActualId}`, {headers:authH()}); const vts = await resV.json(); const gst = await resG.json(); document.getElementById('tabla-ventas').innerHTML = vts.slice(0,5).map(v => `<div class="flex justify-between p-3 bg-slate-50 rounded-xl border text-xs"><b>$${v.total}</b><span class="text-slate-400 font-bold">${v.metodoPago}</span></div>`).join('') || '<p>Vacio</p>'; document.getElementById('tabla-gastos').innerHTML = gst.slice(0,5).map(g => `<div class="flex justify-between p-3 bg-rose-50 rounded-xl border text-rose-900 text-xs"><b>$${g.monto}</b><span>${g.descripcion}</span></div>`).join('') || '<p>Vacio</p>'; }
+// =========================================================
+// HISTORIAL CON INDICADOR MÓVIL
+// =========================================================
+async function cargarHistoriales() { 
+    if(!cajaActualId) return; 
+    const resV = await fetch(`/historial-ventas/${cajaActualId}`, {headers:authH()}); 
+    const resG = await fetch(`/historial-gastos/${cajaActualId}`, {headers:authH()}); 
+    const vts = await resV.json(); 
+    const gst = await resG.json(); 
+    
+    document.getElementById('tabla-ventas').innerHTML = vts.slice(0,5).map(v => {
+        // SI TIENE CÓDIGO, ES VENTA MÓVIL (Generamos la etiqueta visual)
+        let badgeMovil = v.codigo_retiro ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-[9px] ml-2 font-black border border-blue-200 shadow-sm whitespace-nowrap">📱 MÓVIL (${v.codigo_retiro})</span>` : '';
+        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm text-xs"><div class="flex items-center flex-wrap gap-1"><b>$${v.total}</b> ${badgeMovil}</div><span class="text-slate-400 font-bold shrink-0">${v.metodoPago}</span></div>`;
+    }).join('') || '<p class="text-xs text-slate-400 italic">No hay ventas en este turno.</p>'; 
+    
+    document.getElementById('tabla-gastos').innerHTML = gst.slice(0,5).map(g => `<div class="flex justify-between p-3 bg-rose-50 rounded-xl border border-rose-100 shadow-sm text-rose-900 text-xs"><b>$${g.monto}</b><span>${g.descripcion}</span></div>`).join('') || '<p class="text-xs text-slate-400 italic">No hay gastos registrados.</p>'; 
+}
 
 async function verCierreCaja() { 
     const res = await fetch(`/resumen-caja/${cajaActualId}`, {headers:authH()}); const data = await res.json(); 
