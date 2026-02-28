@@ -73,7 +73,7 @@ function configurarInterfazPorRol() {
 function cerrarSesion() { tokenGlobal = null; window.location.reload(); }
 
 // =========================================================
-// NAVEGACIÓN Y DASHBOARDS (SPORTADMIN, SYSADMIN, CLUBADMIN)
+// NAVEGACIÓN Y DASHBOARDS
 // =========================================================
 function verPOS() {
     document.getElementById('panel-dashboard').classList.add('hidden');
@@ -146,7 +146,7 @@ async function crearClub() { const n = document.getElementById('club-nombre').va
 async function abrirModalDeportes() { const selClub = document.getElementById('dep-club'); const lblClub = document.getElementById('label-dep-club'); if (usuarioActual.rol === 'SYSADMIN') { lblClub.classList.remove('hidden'); selClub.classList.remove('hidden'); const res = await fetch('/clubes', {headers:authH()}); const clubes = await res.json(); selClub.innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); } else { lblClub.classList.add('hidden'); selClub.classList.add('hidden'); } listarDeportes(); abrirModal('modal-deportes'); }
 async function listarDeportes() { let url = usuarioActual.rol === 'SYSADMIN' ? '/deportes' : `/deportes/${usuarioActual.club_id}`; const res = await fetch(url, {headers:authH()}); const deps = await res.json(); document.getElementById('lista-deportes-db').innerHTML = deps.map(d => `<div class="p-4 bg-slate-50 rounded-2xl mb-2 flex justify-between items-center border border-slate-100 shadow-sm"><div class="flex items-center gap-3"><img src="${d.imagen || 'https://via.placeholder.com/50'}" class="w-8 h-8 rounded-lg object-cover ${d.estado === 'INACTIVO' ? 'grayscale opacity-50' : ''}"><div><b class="text-sm ${d.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800'}">${d.nombre}</b>${usuarioActual.rol === 'SYSADMIN' && d.club_nombre ? `<p class="text-[10px] text-slate-400 uppercase tracking-widest">${d.club_nombre}</p>` : ''}</div></div>${usuarioActual.rol === 'SYSADMIN' ? `<button onclick="toggleEstadoDeporte(${d.id}, '${d.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'})" class="text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest transition-colors ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">${d.estado === 'ACTIVO' ? 'Habilitado' : 'Suspendido'}</button>` : `<span class="text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${d.estado}</span>`}</div>`).join(''); }
 async function toggleEstadoDeporte(id, nuevoEstado) { if(!confirm(`¿Seguro?`)) return; await fetch(`/deportes/${id}/estado`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ estado: nuevoEstado }) }); listarDeportes(); }
-async function crearDeporte() { const n = document.getElementById('dep-nombre').value, i = document.getElementById('dep-imagen').value, c = usuarioActual.rol === 'SYSADMIN' ? document.getElementById('dep-club').value : usuarioActual.club_id; if(!n || !c) return alert("Faltan datos"); await fetch('/deportes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) }); listarDeportes(); }
+async function crearDeporte() { const n = document.getElementById('dep-nombre').value, i = document.getElementById('dep-imagen').value, c = usuarioActual.rol === 'SYSADMIN' ? document.getElementById('dep-club').value : usuarioActual.club_id; if(!n || !c) return alert("Faltan datos"); await fetch('/deportes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) }); listarDeportes(); document.getElementById('dep-nombre').value=''; document.getElementById('dep-imagen').value=''; }
 
 async function abrirModalUsuarios() { const selRol = document.getElementById('user-rol'); if(usuarioActual.rol === 'SYSADMIN') { selRol.innerHTML = `<option value="CLUBADMIN">PRESIDENTE DE CLUB</option><option value="SPORTADMIN">ADMIN SUBCOMISIÓN</option><option value="CAJERO">CAJERO</option>`; const res = await fetch('/clubes', {headers:authH()}); const clubes = await res.json(); document.getElementById('user-club').innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); } else if(usuarioActual.rol === 'CLUBADMIN') { selRol.innerHTML = `<option value="SPORTADMIN">ADMIN SUBCOMISIÓN</option><option value="CAJERO">CAJERO</option>`; document.getElementById('user-club').innerHTML = `<option value="${usuarioActual.club_id}">${usuarioActual.club_nombre}</option>`; } else if(usuarioActual.rol === 'SPORTADMIN') { selRol.innerHTML = '<option value="CAJERO">CAJERO</option>'; } await adaptarFormUsuario(); listarUsuarios(); abrirModal('modal-usuarios'); }
 async function adaptarFormUsuario() { const rolSel = document.getElementById('user-rol').value; const selClub = document.getElementById('user-club'); const lblClub = document.getElementById('label-club'); const selDep = document.getElementById('user-deporte'); const lblDep = document.getElementById('label-deporte'); if(usuarioActual.rol === 'SYSADMIN') { selClub.classList.remove('hidden'); lblClub.classList.remove('hidden'); } else { selClub.classList.add('hidden'); lblClub.classList.add('hidden'); } if(rolSel === 'CLUBADMIN') { selDep.classList.add('hidden'); lblDep.classList.add('hidden'); } else { if(usuarioActual.rol === 'SPORTADMIN') { selDep.classList.add('hidden'); lblDep.classList.add('hidden'); selDep.innerHTML = `<option value="${usuarioActual.deporte_id}"></option>`; } else { selDep.classList.remove('hidden'); lblDep.classList.remove('hidden'); await cargarDeportesEnSelect(); } } }
@@ -200,7 +200,72 @@ function setMetodo(m) { metodoSeleccionado = m; document.getElementById('pago-ef
 document.addEventListener('keydown', function(e) { const modales = ['modal-apertura', 'modal-clubes', 'modal-deportes', 'modal-usuarios', 'modal-producto', 'modal-gasto', 'modal-cierre', 'modal-movimiento']; const algunModalAbierto = modales.some(id => document.getElementById(id) && document.getElementById(id).classList.contains('flex')); if(algunModalAbierto) return; if (e.key === 'F1') { e.preventDefault(); setMetodo('Efectivo'); } if (e.key === 'F2') { e.preventDefault(); setMetodo('Transferencia'); } if (e.key === 'Escape') { e.preventDefault(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); document.getElementById('buscador').focus(); } if (e.key === 'Enter') { if(document.activeElement.id === 'input-paga-con') return; if (carrito.length > 0 && !document.getElementById('btn-confirmar').disabled) { e.preventDefault(); confirmarVenta(); } } });
 
 async function confirmarVenta() { if (!cajaActualId) return; const res = await fetch('/confirmar-venta', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ items: carrito, metodoPago: metodoSeleccionado, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); const data = await res.json(); if(data.success) { generarTicketVenta(); setTimeout(() => { window.print(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); cargarProductos(); document.getElementById('ticket-impresion').style.display = 'none'; document.getElementById('buscador').focus(); }, 500); } }
-function generarTicketVenta() { const t = document.getElementById('ticket-impresion'); const fechaStr = new Date().toLocaleString('es-AR'); let totalGeneral = 0; const comidas = carrito.filter(i => i.categoria === 'COMIDA'); const bebidas = carrito.filter(i => i.categoria === 'BEBIDA'); const otros = carrito.filter(i => i.categoria !== 'COMIDA' && i.categoria !== 'BEBIDA'); let htmlTicket = ''; if (bebidas.length > 0) { let itemsBebida = bebidas.map(x => { totalGeneral += (x.precio*x.cantidad); return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; }).join(''); htmlTicket += `<div class="ticket-section"><div class="ticket-title">TICKET BEBIDA 🥤</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsBebida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; } if (comidas.length > 0) { let itemsComida = comidas.map(x => { totalGeneral += (x.precio*x.cantidad); return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; }).join(''); htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET COMIDA 🍔</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsComida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; } otros.forEach(x => { totalGeneral += (x.precio*x.cantidad); }); htmlTicket += `<div style="margin-top:10px; text-align:center;"><h3 style="margin:0; font-size:14px; font-weight:bold;">${usuarioActual.club_nombre}</h3><p style="margin:0; font-size:10px;">${usuarioActual.deporte_nombre}</p></div><div style="margin-top:10px; font-size:11px;"><p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p><p style="margin:2px 0;"><b>PAGO:</b> ${metodoSeleccionado.toUpperCase()}</p><p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p></div><div style="border-top:2px solid #000; margin-top:10px; padding-top:5px; display:flex; justify-content:space-between; font-size:18px; font-weight:900;"><span>TOTAL</span><span>$${totalGeneral}</span></div><p style="text-align:center; font-size:9px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>`; t.style.display = 'block'; t.innerHTML = htmlTicket; }
+
+// =========================================================
+// TICKET TÉRMICO CON CORTE DE PAPEL
+// =========================================================
+function generarTicketVenta() { 
+    const t = document.getElementById('ticket-impresion'); 
+    const fechaStr = new Date().toLocaleString('es-AR'); 
+    let totalGeneral = 0; 
+    const comidas = carrito.filter(i => i.categoria === 'COMIDA'); 
+    const bebidas = carrito.filter(i => i.categoria === 'BEBIDA'); 
+    const otros = carrito.filter(i => i.categoria !== 'COMIDA' && i.categoria !== 'BEBIDA'); 
+    
+    let htmlTicket = ''; 
+    
+    // TICKET BEBIDAS (BARRA)
+    if (bebidas.length > 0) { 
+        let itemsBebida = bebidas.map(x => { 
+            totalGeneral += (x.precio*x.cantidad); 
+            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; 
+        }).join(''); 
+        htmlTicket += `
+            <div class="ticket-section">
+                <div class="ticket-title">TICKET BEBIDA 🥤</div>
+                <div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>
+                ${itemsBebida}
+            </div>
+            <div class="cut-line">✂ - CORTE AQUI - ✂</div>`; 
+    } 
+    
+    // TICKET COMIDAS (COCINA)
+    if (comidas.length > 0) { 
+        let itemsComida = comidas.map(x => { 
+            totalGeneral += (x.precio*x.cantidad); 
+            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,18)}</span></div>`; 
+        }).join(''); 
+        htmlTicket += `
+            <div class="ticket-section">
+                <div class="ticket-title">TICKET COMIDA 🍔</div>
+                <div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>
+                ${itemsComida}
+            </div>
+            <div class="cut-line">✂ - CORTE AQUI - ✂</div>`; 
+    } 
+    
+    otros.forEach(x => { totalGeneral += (x.precio*x.cantidad); }); 
+    
+    // TICKET CLIENTE (COMPROBANTE GENERAL)
+    htmlTicket += `
+        <div style="margin-top:10px; text-align:center;">
+            <h3 style="margin:0; font-size:16px; font-weight:bold;">${usuarioActual.club_nombre}</h3>
+            <p style="margin:0; font-size:12px;">${usuarioActual.deporte_nombre}</p>
+        </div>
+        <div style="margin-top:10px; font-size:14px;">
+            <p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p>
+            <p style="margin:2px 0;"><b>PAGO:</b> ${metodoSeleccionado.toUpperCase()}</p>
+            <p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p>
+        </div>
+        <div style="border-top:2px solid #000; margin-top:10px; padding-top:5px; display:flex; justify-content:space-between; font-size:20px; font-weight:900;">
+            <span>TOTAL</span><span>$${totalGeneral}</span>
+        </div>
+        <p style="text-align:center; font-size:10px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>
+    `; 
+    
+    t.style.display = 'block'; 
+    t.innerHTML = htmlTicket; 
+}
 
 function abrirModalGasto() { if(!cajaActualId) return alert("Abre caja primero"); document.getElementById('gasto-desc').value=''; document.getElementById('gasto-monto').value=''; abrirModal('modal-gasto'); }
 async function guardarGasto() { const d = document.getElementById('gasto-desc').value, m = document.getElementById('gasto-monto').value; if(!d || !m) return; await fetch('/gastos', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ descripcion: d, monto: m, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); cerrarModalGenerico('modal-gasto'); cargarHistoriales(); }
