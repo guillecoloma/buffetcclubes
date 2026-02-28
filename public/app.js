@@ -302,15 +302,23 @@ function cerrarModalQR() {
 }
 
 // =========================================================
-// PANTALLA DE DESPACHO (MOSTRADOR)
+// PANTALLA DE DESPACHO CON HISTORIAL (MOSTRADOR)
 // =========================================================
 function verDespacho() {
     document.getElementById('panel-dashboard').classList.add('hidden');
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.remove('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
-    cargarPendientesDespacho();
+    
+    // CARGAMOS AMBAS COLUMNAS
+    cargarTodoDespacho();
     setTimeout(() => document.getElementById('input-codigo-despacho').focus(), 300);
+}
+
+// FUNCIÓN MAESTRA QUE ACTUALIZA LAS DOS COLUMNAS DE DESPACHO
+async function cargarTodoDespacho() {
+    cargarPendientesDespacho();
+    cargarEntregadosDespacho();
 }
 
 async function cargarPendientesDespacho() {
@@ -333,6 +341,28 @@ async function cargarPendientesDespacho() {
                 ${v.items.map(i => `<li>🔸 ${i.cantidad}x ${i.producto_nombre}</li>`).join('')}
             </ul>
             <button onclick="entregarPedido(${v.id})" class="mt-auto w-full bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white py-2.5 md:py-3 rounded-lg md:rounded-xl font-black transition-colors text-xs md:text-sm">✔️ ENTREGAR</button>
+        </div>
+    `).join('');
+}
+
+// NUEVA FUNCIÓN: CARGAR HISTORIAL DE ENTREGADOS RECIENTES
+async function cargarEntregadosDespacho() {
+    const res = await fetch(`/despacho/entregados/${usuarioActual.deporte_id}`, { headers: authH() });
+    const ventas = await res.json();
+    const contenedor = document.getElementById('grilla-entregados');
+    
+    if (ventas.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 font-bold italic text-center mt-6 text-xs">Aún no hay despachos completados.</p>';
+        return;
+    }
+    
+    contenedor.innerHTML = ventas.map(v => `
+        <div class="bg-emerald-50 p-3 rounded-xl md:rounded-2xl border border-emerald-100 flex justify-between items-center opacity-80 hover:opacity-100 transition-opacity">
+            <div>
+                <span class="text-lg font-black text-emerald-800">${v.codigo_retiro}</span>
+                <p class="text-[10px] text-emerald-600/80 font-bold leading-tight mt-0.5">${v.items.map(i => `${i.cantidad}x ${i.producto_nombre}`).join(', ')}</p>
+            </div>
+            <span class="text-[8px] bg-emerald-200 text-emerald-800 px-2 py-1 rounded-md font-black shrink-0 ml-2 shadow-sm">ENTREGADO</span>
         </div>
     `).join('');
 }
@@ -377,7 +407,7 @@ async function buscarTicketDespacho() {
 async function entregarPedido(id) {
     await fetch(`/despacho/entregar/${id}`, { method: 'PUT', headers: authH() });
     document.getElementById('resultado-escaneo').classList.add('hidden');
-    cargarPendientesDespacho();
+    cargarTodoDespacho(); // ACTUALIZA PENDIENTES Y ENTREGADOS A LA VEZ
     document.getElementById('input-codigo-despacho').focus();
 }
 
@@ -454,7 +484,6 @@ async function cargarHistoriales() {
     const gst = await resG.json(); 
     
     document.getElementById('tabla-ventas').innerHTML = vts.slice(0,5).map(v => {
-        // SI TIENE CÓDIGO, ES VENTA MÓVIL (Generamos la etiqueta visual)
         let badgeMovil = v.codigo_retiro ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-[9px] ml-2 font-black border border-blue-200 shadow-sm whitespace-nowrap">📱 MÓVIL (${v.codigo_retiro})</span>` : '';
         return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm text-xs"><div class="flex items-center flex-wrap gap-1"><b>$${v.total}</b> ${badgeMovil}</div><span class="text-slate-400 font-bold shrink-0">${v.metodoPago}</span></div>`;
     }).join('') || '<p class="text-xs text-slate-400 italic">No hay ventas en este turno.</p>'; 

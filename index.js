@@ -37,8 +37,6 @@ let db;
         }
         try { await db.exec(`ALTER TABLE productos ADD COLUMN categoria TEXT DEFAULT 'OTROS'`); } catch(e){}
         try { await db.exec(`ALTER TABLE deportes ADD COLUMN estado TEXT DEFAULT 'ACTIVO'`); } catch(e){} 
-        
-        // NUEVAS COLUMNAS PARA EL SISTEMA DE DESPACHO
         try { await db.exec(`ALTER TABLE ventas ADD COLUMN estado_entrega TEXT DEFAULT 'ENTREGADO'`); } catch(e){}
         try { await db.exec(`ALTER TABLE ventas ADD COLUMN codigo_retiro TEXT`); } catch(e){}
 
@@ -121,7 +119,7 @@ app.put('/productos/:id', verificarToken, async (req, res) => { try { await db.r
 app.delete('/productos/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM productos WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
 // =======================================================
-// 🛒 RUTA DE VENTAS ACTUALIZADA (SOPORTA DESPACHO MÓVIL)
+// 🛒 RUTA DE VENTAS Y DESPACHO
 // =======================================================
 app.post('/confirmar-venta', verificarToken, async (req, res) => {
     const { items, metodoPago, caja_id, club_id, deporte_id, requiere_despacho } = req.body;
@@ -132,10 +130,9 @@ app.post('/confirmar-venta', verificarToken, async (req, res) => {
         let codigo_retiro = null;
         let estado = 'ENTREGADO';
         
-        // Si es vendedor móvil, generamos código y queda en espera
         if (requiere_despacho) {
             estado = 'PENDIENTE';
-            codigo_retiro = `T-${Math.floor(1000 + Math.random() * 9000)}`; // Ej: T-4892
+            codigo_retiro = `T-${Math.floor(1000 + Math.random() * 9000)}`;
         }
 
         const result = await db.run(
@@ -144,28 +141,27 @@ app.post('/confirmar-venta', verificarToken, async (req, res) => {
         );
         const ventaId = result.lastID;
 
-        // Descuenta stock y guarda qué compró exactamente
         for (const item of items) { 
             await db.run('UPDATE productos SET stock = stock - ? WHERE id = ?', [item.cantidad, item.id]); 
             await db.run('INSERT INTO ventas_detalles (venta_id, producto_nombre, cantidad) VALUES (?, ?, ?)', [ventaId, item.nombre, item.cantidad]);
         }
-        
         res.json({ success: true, idVenta: ventaId, codigo_retiro });
-    } catch (e) { 
-        console.error("❌ Error en confirmar-venta:", e);
-        res.status(500).json({ success: false, error: e.message }); 
-    }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// =======================================================
-// 🛎️ RUTAS PARA EL PANEL DE DESPACHO
-// =======================================================
 app.get('/despacho/pendientes/:deporteId', verificarToken, async (req, res) => {
     try {
         const ventas = await db.all(`SELECT id, codigo_retiro, fecha FROM ventas WHERE deporte_id = ? AND estado_entrega = 'PENDIENTE' ORDER BY id ASC`, [req.params.deporteId]);
-        for (let v of ventas) {
-            v.items = await db.all(`SELECT producto_nombre, cantidad FROM ventas_detalles WHERE venta_id = ?`, [v.id]);
-        }
+        for (let v of ventas) { v.items = await db.all(`SELECT producto_nombre, cantidad FROM ventas_detalles WHERE venta_id = ?`, [v.id]); }
+        res.json(ventas);
+    } catch (e) { res.status(500).json({error: e.message}); }
+});
+
+// NUEVO: Ruta para traer los últimos 15 pedidos entregados
+app.get('/despacho/entregados/:deporteId', verificarToken, async (req, res) => {
+    try {
+        const ventas = await db.all(`SELECT id, codigo_retiro, fecha FROM ventas WHERE deporte_id = ? AND estado_entrega = 'ENTREGADO' AND codigo_retiro IS NOT NULL ORDER BY id DESC LIMIT 15`, [req.params.deporteId]);
+        for (let v of ventas) { v.items = await db.all(`SELECT producto_nombre, cantidad FROM ventas_detalles WHERE venta_id = ?`, [v.id]); }
         res.json(ventas);
     } catch (e) { res.status(500).json({error: e.message}); }
 });
