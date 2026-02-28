@@ -27,6 +27,7 @@ let db;
             CREATE TABLE IF NOT EXISTS ventas (id INTEGER PRIMARY KEY AUTOINCREMENT, caja_id INTEGER, club_id INTEGER, deporte_id INTEGER, total REAL, metodoPago TEXT, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
             CREATE TABLE IF NOT EXISTS gastos (id INTEGER PRIMARY KEY AUTOINCREMENT, caja_id INTEGER, club_id INTEGER, deporte_id INTEGER, descripcion TEXT, monto REAL, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
             CREATE TABLE IF NOT EXISTS movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, club_id INTEGER, deporte_id INTEGER, tipo TEXT, concepto TEXT, monto REAL, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
+            CREATE TABLE IF NOT EXISTS ventas_detalles (id INTEGER PRIMARY KEY AUTOINCREMENT, venta_id INTEGER, producto_nombre TEXT, cantidad INTEGER);
         `);
 
         const tablasConClubYDeporte = ['usuarios', 'productos', 'cajas', 'ventas', 'gastos', 'movimientos'];
@@ -36,6 +37,10 @@ let db;
         }
         try { await db.exec(`ALTER TABLE productos ADD COLUMN categoria TEXT DEFAULT 'OTROS'`); } catch(e){}
         try { await db.exec(`ALTER TABLE deportes ADD COLUMN estado TEXT DEFAULT 'ACTIVO'`); } catch(e){} 
+        
+        // NUEVAS COLUMNAS PARA EL SISTEMA DE DESPACHO
+        try { await db.exec(`ALTER TABLE ventas ADD COLUMN estado_entrega TEXT DEFAULT 'ENTREGADO'`); } catch(e){}
+        try { await db.exec(`ALTER TABLE ventas ADD COLUMN codigo_retiro TEXT`); } catch(e){}
 
         const adminEmail = "admin@buffet.com";
         const adminExists = await db.get('SELECT * FROM usuarios WHERE email = ?', [adminEmail]);
@@ -54,16 +59,14 @@ let db;
             }
         }
 
-        console.log("✅ Servidor iniciado. 🛡️ JWT Activado y Seguridad Máxima.");
+        console.log("✅ Servidor iniciado. 🛡️ Módulo de Despacho Integrado.");
     } catch (error) { console.error("❌ Error crítico:", error); }
 })();
 
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(403).json({ success: false, mensaje: "Acceso denegado. No hay token." });
-    
     const token = authHeader.split(' ')[1]; 
-    
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) return res.status(401).json({ success: false, mensaje: "Token inválido o expirado." });
         req.usuarioVerificado = decoded; 
@@ -118,27 +121,71 @@ app.put('/productos/:id', verificarToken, async (req, res) => { try { await db.r
 app.delete('/productos/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM productos WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
 // =======================================================
-// 🛒 RUTA DE VENTAS CORREGIDA Y ESTABLE
+// 🛒 RUTA DE VENTAS ACTUALIZADA (SOPORTA DESPACHO MÓVIL)
 // =======================================================
 app.post('/confirmar-venta', verificarToken, async (req, res) => {
-    const { items, metodoPago, caja_id, club_id, deporte_id } = req.body;
+    const { items, metodoPago, caja_id, club_id, deporte_id, requiere_despacho } = req.body;
     try {
         let total = 0;
+        for (const item of items) { total += (item.precio * item.cantidad); }
+
+        let codigo_retiro = null;
+        let estado = 'ENTREGADO';
         
-        // Descuenta el stock y suma el total de forma segura
+        // Si es vendedor móvil, generamos código y queda en espera
+        if (requiere_despacho) {
+            estado = 'PENDIENTE';
+            codigo_retiro = `T-${Math.floor(1000 + Math.random() * 9000)}`; // Ej: T-4892
+        }
+
+        const result = await db.run(
+            'INSERT INTO ventas (total, metodoPago, caja_id, club_id, deporte_id, estado_entrega, codigo_retiro) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+            [total, metodoPago, caja_id, club_id, deporte_id, estado, codigo_retiro]
+        );
+        const ventaId = result.lastID;
+
+        // Descuenta stock y guarda qué compró exactamente
         for (const item of items) { 
-            total += (item.precio * item.cantidad); 
             await db.run('UPDATE productos SET stock = stock - ? WHERE id = ?', [item.cantidad, item.id]); 
+            await db.run('INSERT INTO ventas_detalles (venta_id, producto_nombre, cantidad) VALUES (?, ?, ?)', [ventaId, item.nombre, item.cantidad]);
         }
         
-        // Registra la venta
-        const result = await db.run('INSERT INTO ventas (total, metodoPago, caja_id, club_id, deporte_id) VALUES (?, ?, ?, ?, ?)', [total, metodoPago, caja_id, club_id, deporte_id]);
-        
-        res.json({ success: true, idVenta: result.lastID });
+        res.json({ success: true, idVenta: ventaId, codigo_retiro });
     } catch (e) { 
         console.error("❌ Error en confirmar-venta:", e);
         res.status(500).json({ success: false, error: e.message }); 
     }
+});
+
+// =======================================================
+// 🛎️ RUTAS PARA EL PANEL DE DESPACHO
+// =======================================================
+app.get('/despacho/pendientes/:deporteId', verificarToken, async (req, res) => {
+    try {
+        const ventas = await db.all(`SELECT id, codigo_retiro, fecha FROM ventas WHERE deporte_id = ? AND estado_entrega = 'PENDIENTE' ORDER BY id ASC`, [req.params.deporteId]);
+        for (let v of ventas) {
+            v.items = await db.all(`SELECT producto_nombre, cantidad FROM ventas_detalles WHERE venta_id = ?`, [v.id]);
+        }
+        res.json(ventas);
+    } catch (e) { res.status(500).json({error: e.message}); }
+});
+
+app.get('/despacho/buscar/:codigo/:deporteId', verificarToken, async (req, res) => {
+    try {
+        const venta = await db.get(`SELECT id, codigo_retiro, estado_entrega, fecha FROM ventas WHERE codigo_retiro = ? AND deporte_id = ?`, [req.params.codigo.toUpperCase(), req.params.deporteId]);
+        if (!venta) return res.json({ success: false, mensaje: "TICKET NO ENCONTRADO" });
+        if (venta.estado_entrega === 'ENTREGADO') return res.json({ success: false, mensaje: "❌ ESTE TICKET YA FUE ENTREGADO" });
+
+        venta.items = await db.all(`SELECT producto_nombre, cantidad FROM ventas_detalles WHERE venta_id = ?`, [venta.id]);
+        res.json({ success: true, venta });
+    } catch (e) { res.status(500).json({error: e.message}); }
+});
+
+app.put('/despacho/entregar/:id', verificarToken, async (req, res) => {
+    try {
+        await db.run(`UPDATE ventas SET estado_entrega = 'ENTREGADO' WHERE id = ?`, [req.params.id]);
+        res.json({success:true});
+    } catch (e) { res.status(500).json({error: e.message}); }
 });
 
 app.post('/gastos', verificarToken, async (req, res) => { try { await db.run('INSERT INTO gastos (descripcion, monto, caja_id, club_id, deporte_id) VALUES (?, ?, ?, ?, ?)', [req.body.descripcion, req.body.monto, req.body.caja_id, req.body.club_id, req.body.deporte_id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });

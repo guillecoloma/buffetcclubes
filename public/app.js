@@ -11,6 +11,7 @@ let categoriaActiva = 'TODOS';
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
 let ticketCierreDatos = {};
+let qrcodeGenerador = null; // Para el modal de Venta Movil
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -37,7 +38,9 @@ async function intentarLogin() {
 function configurarInterfazPorRol() {
     document.getElementById('panel-dashboard').classList.add('hidden');
     document.getElementById('panel-pos').classList.add('hidden');
-    ['btn-clubes', 'btn-deportes', 'btn-usuarios', 'btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-dash-sport', 'btn-pos-sport'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById('panel-despacho').classList.add('hidden');
+    ['btn-clubes', 'btn-deportes', 'btn-usuarios', 'btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-dash-sport', 'btn-pos-sport', 'btn-despacho'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    
     document.getElementById('header-rol').innerText = usuarioActual.rol;
     document.getElementById('label-usuario-caja').innerText = usuarioActual.nombre;
 
@@ -58,13 +61,13 @@ function configurarInterfazPorRol() {
     else if (usuarioActual.rol === 'SPORTADMIN') {
         document.getElementById('header-entidad-nombre').innerText = `${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}`;
         if(usuarioActual.deporte_logo) { document.getElementById('header-logo').src = usuarioActual.deporte_logo; document.getElementById('header-logo').classList.remove('hidden'); document.getElementById('logo-default').classList.add('hidden'); }
-        ['btn-usuarios', 'btn-dash-sport', 'btn-pos-sport'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+        ['btn-usuarios', 'btn-dash-sport', 'btn-pos-sport', 'btn-despacho'].forEach(id => document.getElementById(id).classList.remove('hidden'));
         verDashboardSport(); 
     }
     else if (usuarioActual.rol === 'CAJERO') {
         document.getElementById('header-entidad-nombre').innerText = `${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}`;
         if(usuarioActual.deporte_logo) { document.getElementById('header-logo').src = usuarioActual.deporte_logo; document.getElementById('header-logo').classList.remove('hidden'); document.getElementById('logo-default').classList.add('hidden'); }
-        ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+        ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-despacho'].forEach(id => document.getElementById(id).classList.remove('hidden'));
         document.getElementById('panel-pos').classList.remove('hidden');
         if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
     }
@@ -73,10 +76,11 @@ function configurarInterfazPorRol() {
 function cerrarSesion() { tokenGlobal = null; window.location.reload(); }
 
 // =========================================================
-// NAVEGACIÓN Y DASHBOARDS
+// NAVEGACIÓN DE PANTALLAS
 // =========================================================
 function verPOS() {
     document.getElementById('panel-dashboard').classList.add('hidden');
+    document.getElementById('panel-despacho').classList.add('hidden');
     document.getElementById('panel-pos').classList.remove('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.remove('hidden'));
     if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
@@ -84,6 +88,7 @@ function verPOS() {
 
 async function verDashboardSport() {
     document.getElementById('panel-pos').classList.add('hidden');
+    document.getElementById('panel-despacho').classList.add('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('panel-dashboard').classList.remove('hidden');
     
@@ -159,7 +164,7 @@ async function eliminarUsuario(id) { if(confirm("¿Eliminar permanentemente?")) 
 // MOVIMIENTOS Y LIBRO MAYOR
 // =========================================================
 function abrirModalMovimiento(tipo) {
-    document.getElementById('movimiento-tipo').value = tipo; document.getElementById('titulo-movimiento').innerText = tipo === 'INGRESO' ? 'Nuevo Ingreso' : 'Nuevo Egreso'; document.getElementById('icono-movimiento').innerText = tipo === 'INGRESO' ? '💰' : '📉'; document.getElementById('icono-movimiento').className = tipo === 'INGRESO' ? 'w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 bg-emerald-100' : 'w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 bg-rose-100'; document.getElementById('btn-guardar-mov').className = tipo === 'INGRESO' ? 'flex-1 text-white py-4 rounded-2xl font-black shadow-lg bg-emerald-500 hover:bg-emerald-600' : 'flex-1 text-white py-4 rounded-2xl font-black shadow-lg bg-rose-500 hover:bg-rose-600';
+    document.getElementById('movimiento-tipo').value = tipo; document.getElementById('titulo-movimiento').innerText = tipo === 'INGRESO' ? 'Nuevo Ingreso' : 'Nuevo Egreso'; document.getElementById('icono-movimiento').innerText = tipo === 'INGRESO' ? '💰' : '📉'; document.getElementById('icono-movimiento').className = tipo === 'INGRESO' ? 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4 bg-emerald-100' : 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4 bg-rose-100'; document.getElementById('btn-guardar-mov').className = tipo === 'INGRESO' ? 'flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg bg-emerald-500 hover:bg-emerald-600 text-sm md:text-base' : 'flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg bg-rose-500 hover:bg-rose-600 text-sm md:text-base';
     document.getElementById('movimiento-concepto').value = ''; document.getElementById('movimiento-monto').value = ''; abrirModal('modal-movimiento');
 }
 async function guardarMovimiento() {
@@ -171,11 +176,11 @@ async function guardarMovimiento() {
 async function eliminarMovimiento(id) { if(confirm("¿Seguro que deseas eliminar este registro?")) { await fetch(`/movimientos/${id}`, { method: 'DELETE', headers: authH() }); verDashboardSport(); } }
 
 // =========================================================
-// TERMINAL POS (VENTAS, PRODUCTOS, CAJA)
+// TERMINAL POS Y CARRITO
 // =========================================================
 async function abrirCaja() { const m = document.getElementById('monto-apertura').value; if(m === '') return alert("Ingresa monto inicial"); const res = await fetch('/abrir-caja', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ usuario_id: usuarioActual.id, monto_inicial: parseFloat(m), club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); const data = await res.json(); if(data.success) { cajaActualId = data.cajaId; cerrarModalGenerico('modal-apertura'); cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); } }
 
-function filtrarCategoria(cat) { categoriaActiva = cat; ['TODOS', 'COMIDA', 'BEBIDA', 'OTROS'].forEach(c => { const btn = document.getElementById(`cat-${c}`); if(c === cat) btn.className = "bg-slate-800 text-white px-5 py-2.5 rounded-2xl font-black shadow-md transition-all text-xs uppercase"; else btn.className = "bg-white text-slate-500 border border-slate-200 px-5 py-2.5 rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all text-xs uppercase"; }); aplicarFiltros(); document.getElementById('buscador').focus(); }
+function filtrarCategoria(cat) { categoriaActiva = cat; ['TODOS', 'COMIDA', 'BEBIDA', 'OTROS'].forEach(c => { const btn = document.getElementById(`cat-${c}`); if(c === cat) btn.className = "shrink-0 bg-slate-800 text-white px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl lg:rounded-2xl font-black shadow-md transition-all text-[10px] lg:text-xs"; else btn.className = "shrink-0 bg-white text-slate-500 border border-slate-200 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl lg:rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all text-[10px] lg:text-xs uppercase"; }); aplicarFiltros(); document.getElementById('buscador').focus(); }
 function aplicarFiltros() { const txt = document.getElementById('buscador').value.toLowerCase(); const filtrados = listaProductosGlobal.filter(p => { const matchTxt = p.nombre.toLowerCase().includes(txt); const matchCat = categoriaActiva === 'TODOS' || p.categoria === categoriaActiva; return matchTxt && matchCat; }); renderizarProductos(filtrados); }
 
 async function cargarProductos() { const res = await fetch(`/productos/${usuarioActual.deporte_id}`, {headers:authH()}); listaProductosGlobal = await res.json(); aplicarFiltros(); cargarHistoriales(); renderizarProductosModal(); }
@@ -195,14 +200,169 @@ function cambiarCantidad(i, d) { if(d > 0 && carrito[i].cantidad >= carrito[i].s
 function gestionarCalculadoraVuelto() { const panel = document.getElementById('panel-vuelto'); if (totalCarritoValor > 0 && metodoSeleccionado === 'Efectivo') { panel.classList.remove('hidden'); panel.classList.add('flex'); let sugerencias = new Set(); let redondeoMil = Math.ceil(totalCarritoValor / 1000) * 1000; if(redondeoMil >= totalCarritoValor) sugerencias.add(redondeoMil); if(totalCarritoValor <= 2000) sugerencias.add(2000); if(totalCarritoValor <= 5000) sugerencias.add(5000); if(totalCarritoValor <= 10000) sugerencias.add(10000); if(totalCarritoValor <= 20000) sugerencias.add(20000); let htmlBotones = Array.from(sugerencias).sort((a,b)=>a-b).map(b => `<button onclick="setPagaCon(${b})" class="bg-white border border-slate-200 px-2 py-1 rounded border-b-2 font-black text-[9px] text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors shadow-sm">$${b}</button>`).join(''); document.getElementById('botones-billetes').innerHTML = htmlBotones; calcularVuelto(document.getElementById('input-paga-con').value); } else { panel.classList.add('hidden'); panel.classList.remove('flex'); } }
 function setPagaCon(monto) { document.getElementById('input-paga-con').value = monto; calcularVuelto(monto); }
 function calcularVuelto(pagaCon) { const paga = parseInt(pagaCon) || 0; const vuelto = paga - totalCarritoValor; const label = document.getElementById('label-vuelto'); if (vuelto >= 0 && paga > 0) { label.innerText = `$${vuelto}`; label.classList.replace('text-rose-500', 'text-emerald-500'); } else { label.innerText = `$0`; label.classList.replace('text-emerald-500', 'text-rose-500'); } }
-function setMetodo(m) { metodoSeleccionado = m; document.getElementById('pago-efectivo').className = m === 'Efectivo' ? "relative py-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-xs" : "relative py-2.5 rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-xs"; document.getElementById('pago-transf').className = m === 'Transferencia' ? "relative py-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-xs" : "relative py-2.5 rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-xs"; gestionarCalculadoraVuelto(); document.getElementById('buscador').focus(); }
+function setMetodo(m) { metodoSeleccionado = m; document.getElementById('pago-efectivo').className = m === 'Efectivo' ? "relative py-2 lg:py-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-[11px] lg:text-xs" : "relative py-2 lg:py-2.5 rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-[11px] lg:text-xs"; document.getElementById('pago-transf').className = m === 'Transferencia' ? "relative py-2 lg:py-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-[11px] lg:text-xs" : "relative py-2 lg:py-2.5 rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-[11px] lg:text-xs"; gestionarCalculadoraVuelto(); document.getElementById('buscador').focus(); }
 
-document.addEventListener('keydown', function(e) { const modales = ['modal-apertura', 'modal-clubes', 'modal-deportes', 'modal-usuarios', 'modal-producto', 'modal-gasto', 'modal-cierre', 'modal-movimiento']; const algunModalAbierto = modales.some(id => document.getElementById(id) && document.getElementById(id).classList.contains('flex')); if(algunModalAbierto) return; if (e.key === 'F1') { e.preventDefault(); setMetodo('Efectivo'); } if (e.key === 'F2') { e.preventDefault(); setMetodo('Transferencia'); } if (e.key === 'Escape') { e.preventDefault(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); document.getElementById('buscador').focus(); } if (e.key === 'Enter') { if(document.activeElement.id === 'input-paga-con') return; if (carrito.length > 0 && !document.getElementById('btn-confirmar').disabled) { e.preventDefault(); confirmarVenta(); } } });
-
-async function confirmarVenta() { if (!cajaActualId) return; const res = await fetch('/confirmar-venta', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ items: carrito, metodoPago: metodoSeleccionado, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); const data = await res.json(); if(data.success) { generarTicketVenta(); setTimeout(() => { window.print(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); cargarProductos(); document.getElementById('ticket-impresion').style.display = 'none'; document.getElementById('buscador').focus(); }, 500); } }
+document.addEventListener('keydown', function(e) { const modales = ['modal-apertura', 'modal-clubes', 'modal-deportes', 'modal-usuarios', 'modal-producto', 'modal-gasto', 'modal-cierre', 'modal-movimiento', 'modal-qr']; const algunModalAbierto = modales.some(id => document.getElementById(id) && document.getElementById(id).classList.contains('flex')); if(algunModalAbierto) return; if (e.key === 'F1') { e.preventDefault(); setMetodo('Efectivo'); } if (e.key === 'F2') { e.preventDefault(); setMetodo('Transferencia'); } if (e.key === 'Escape') { e.preventDefault(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); document.getElementById('buscador').focus(); } if (e.key === 'Enter') { if(document.activeElement.id === 'input-paga-con' || document.activeElement.id === 'input-codigo-despacho') return; if (carrito.length > 0 && !document.getElementById('btn-confirmar').disabled) { e.preventDefault(); confirmarVenta(); } } });
 
 // =========================================================
-// TICKET ORIGINAL - CON PRECIOS POR ITEM A LA DERECHA
+// NUEVA LÓGICA DE CONFIRMACIÓN (SOPORTA DESPACHO)
+// =========================================================
+async function confirmarVenta() { 
+    if (!cajaActualId || carrito.length === 0) return; 
+    
+    const btn = document.getElementById('btn-confirmar');
+    btn.innerText = "PROCESANDO...";
+    btn.disabled = true;
+
+    const esMovil = document.getElementById('entrega-movil').checked;
+
+    try {
+        const res = await fetch('/confirmar-venta', { 
+            method: 'POST', headers: authJsonH(), 
+            body: JSON.stringify({ 
+                items: carrito, 
+                metodoPago: metodoSeleccionado, 
+                caja_id: cajaActualId, 
+                club_id: usuarioActual.club_id, 
+                deporte_id: usuarioActual.deporte_id,
+                requiere_despacho: esMovil 
+            }) 
+        }); 
+        const data = await res.json(); 
+        
+        if(data.success) { 
+            if (esMovil) {
+                // VENDEDOR MÓVIL: Muestra el QR gigante
+                mostrarModalQR(data.codigo_retiro);
+            } else {
+                // MOSTRADOR NORMAL: Imprime Ticket
+                generarTicketVenta(); 
+                setTimeout(() => { 
+                    window.print(); 
+                    limpiarVentaExitosa();
+                }, 500); 
+            }
+        } else {
+            alert("Error al procesar la venta");
+        }
+    } catch(e) { alert("Error de conexión"); }
+    
+    btn.innerHTML = `CONFIRMAR`;
+    btn.disabled = false;
+}
+
+function limpiarVentaExitosa() {
+    carrito = []; 
+    document.getElementById('input-paga-con').value = ''; 
+    actualizarCarrito(); 
+    cargarProductos(); 
+    document.getElementById('ticket-impresion').style.display = 'none'; 
+    document.getElementById('buscador').focus();
+}
+
+// LÓGICA DEL QR
+function mostrarModalQR(codigo) {
+    document.getElementById('qr-codigo-texto').innerText = codigo;
+    const container = document.getElementById('qr-container');
+    container.innerHTML = ''; 
+    qrcodeGenerador = new QRCode(container, {
+        text: codigo,
+        width: 220,
+        height: 220,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+    document.getElementById('modal-qr').classList.replace('hidden', 'flex');
+}
+
+function cerrarModalQR() {
+    document.getElementById('modal-qr').classList.replace('flex', 'hidden');
+    limpiarVentaExitosa();
+}
+
+// =========================================================
+// PANTALLA DE DESPACHO (MOSTRADOR)
+// =========================================================
+function verDespacho() {
+    document.getElementById('panel-dashboard').classList.add('hidden');
+    document.getElementById('panel-pos').classList.add('hidden');
+    document.getElementById('panel-despacho').classList.remove('hidden');
+    ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    cargarPendientesDespacho();
+    setTimeout(() => document.getElementById('input-codigo-despacho').focus(), 300);
+}
+
+async function cargarPendientesDespacho() {
+    const res = await fetch(`/despacho/pendientes/${usuarioActual.deporte_id}`, { headers: authH() });
+    const ventas = await res.json();
+    const grilla = document.getElementById('grilla-pendientes');
+    
+    if (ventas.length === 0) {
+        grilla.innerHTML = '<p class="text-slate-400 font-bold italic col-span-full">No hay pedidos pendientes en la fila.</p>';
+        return;
+    }
+    
+    grilla.innerHTML = ventas.map(v => `
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-orange-200 flex flex-col gap-3 hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-center border-b border-orange-100 pb-2">
+                <span class="text-3xl font-black text-slate-800">${v.codigo_retiro}</span>
+                <span class="text-[10px] text-slate-400 font-bold bg-slate-100 px-2 py-1 rounded-md">${v.fecha.split(' ')[1]}</span>
+            </div>
+            <ul class="text-sm font-bold text-slate-600 space-y-1 my-2">
+                ${v.items.map(i => `<li>🔸 ${i.cantidad}x ${i.producto_nombre}</li>`).join('')}
+            </ul>
+            <button onclick="entregarPedido(${v.id})" class="mt-auto w-full bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white py-3 rounded-xl font-black transition-colors">✔️ ENTREGAR</button>
+        </div>
+    `).join('');
+}
+
+async function buscarTicketDespacho() {
+    const input = document.getElementById('input-codigo-despacho');
+    const codigo = input.value.trim();
+    if(!codigo) return;
+    
+    const res = await fetch(`/despacho/buscar/${codigo}/${usuarioActual.deporte_id}`, { headers: authH() });
+    const data = await res.json();
+    
+    const divRes = document.getElementById('resultado-escaneo');
+    divRes.classList.remove('hidden');
+    
+    if (!data.success) {
+        divRes.className = 'mb-8 p-6 rounded-3xl shadow-lg border-2 border-rose-500 bg-rose-50 text-center';
+        divRes.innerHTML = `<h3 class="text-2xl font-black text-rose-600">${data.mensaje}</h3>`;
+        input.value = '';
+        setTimeout(() => divRes.classList.add('hidden'), 3500);
+        return;
+    }
+    
+    const v = data.venta;
+    divRes.className = 'mb-8 p-6 md:p-8 rounded-3xl shadow-xl border-2 border-emerald-500 bg-emerald-50';
+    divRes.innerHTML = `
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <h3 class="text-3xl md:text-5xl font-black text-emerald-700 tracking-tighter">${v.codigo_retiro}</h3>
+            <span class="bg-emerald-200 text-emerald-800 px-4 py-2 rounded-xl font-black text-sm uppercase tracking-widest shadow-inner">PAGADO VÁLIDO</span>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm mb-6">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Entregar al cliente:</p>
+            <ul class="text-xl md:text-2xl font-black text-slate-700 space-y-3">
+                ${v.items.map(i => `<li>🔸 ${i.cantidad}x ${i.producto_nombre}</li>`).join('')}
+            </ul>
+        </div>
+        <button onclick="entregarPedido(${v.id})" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black text-xl shadow-[0_10px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition-colors">✔️ MARCAR COMO ENTREGADO Y CERRAR</button>
+    `;
+    input.value = '';
+}
+
+async function entregarPedido(id) {
+    await fetch(`/despacho/entregar/${id}`, { method: 'PUT', headers: authH() });
+    document.getElementById('resultado-escaneo').classList.add('hidden');
+    cargarPendientesDespacho();
+    document.getElementById('input-codigo-despacho').focus();
+}
+
+// =========================================================
+// IMPRESIÓN DE TICKETS ORIGINAL 
 // =========================================================
 function generarTicketVenta() { 
     const t = document.getElementById('ticket-impresion'); 
@@ -256,7 +416,6 @@ function generarTicketVenta() {
         </div>
         <p style="text-align:center; font-size:9px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>
     `; 
-    
     t.style.display = 'block'; 
     t.innerHTML = htmlTicket; 
 }
