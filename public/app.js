@@ -98,9 +98,9 @@ function verPOS() {
 }
 
 // =========================================================
-// DASHBOARD MULTICUENTAS (SPORTADMIN)
+// DASHBOARD MULTICUENTAS Y MODO AUDITORÍA PARA DUEÑOS
 // =========================================================
-async function verDashboardSport() {
+async function verDashboardSport(overrideDeporteId = null, overrideNombre = null) {
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
@@ -109,11 +109,16 @@ async function verDashboardSport() {
     const divContenido = document.getElementById('contenido-dashboard');
     divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas y billeteras...</p>';
 
+    // Identificamos si es el dueño mirando, o el admin propio
+    const targetDeporteId = overrideDeporteId || usuarioActual.deporte_id;
+    const targetNombre = overrideNombre || 'Tesorería General';
+    const isAuditor = overrideDeporteId !== null;
+
     try {
-        const resStats = await fetch(`/estadisticas-subcomision/${usuarioActual.deporte_id}`, { headers: authH() }); const stats = await resStats.json();
-        const resCajas = await fetch(`/cajas-subcomision/${usuarioActual.deporte_id}`, { headers: authH() }); const cajas = await resCajas.json();
-        const resMovs = await fetch(`/movimientos/${usuarioActual.deporte_id}`, { headers: authH() }); const movimientos = await resMovs.json();
-        const resProds = await fetch(`/productos/${usuarioActual.deporte_id}`, { headers: authH() }); const prods = await resProds.json();
+        const resStats = await fetch(`/estadisticas-subcomision/${targetDeporteId}`, { headers: authH() }); const stats = await resStats.json();
+        const resCajas = await fetch(`/cajas-subcomision/${targetDeporteId}`, { headers: authH() }); const cajas = await resCajas.json();
+        const resMovs = await fetch(`/movimientos/${targetDeporteId}`, { headers: authH() }); const movimientos = await resMovs.json();
+        const resProds = await fetch(`/productos/${targetDeporteId}`, { headers: authH() }); const prods = await resProds.json();
         const prodsBajoStock = prods.filter(p => p.stock <= 10).sort((a,b) => a.stock - b.stock);
 
         let htmlCajas = cajas.map(c => `<div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm mb-2"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-xs ${c.estado === 'ABIERTA' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}">${c.estado === 'ABIERTA' ? 'ON' : 'OFF'}</div><div><p class="font-bold text-slate-800 text-sm">${c.cajero_nombre || 'Desconocido'}</p><p class="text-[10px] text-slate-400 mt-0.5">Apertura: ${c.fecha_apertura}</p></div></div><div class="text-right"><p class="font-black text-slate-800">$${c.total_ingresos}</p><p class="text-[10px] text-rose-500 font-bold">Gastos: -$${c.total_gastos}</p></div></div>`).join('');
@@ -125,21 +130,49 @@ async function verDashboardSport() {
             else if (m.tipo === 'EGRESO') { badge = 'bg-rose-100 text-rose-600'; valor = `<span class="text-rose-600 font-black">- $${m.monto}</span> <span class="text-[9px] text-slate-400 block text-right">${m.cuenta_origen}</span>`; }
             else { badge = 'bg-blue-100 text-blue-600'; valor = `<span class="text-blue-600 font-black">🔄 $${m.monto}</span> <span class="text-[9px] text-slate-400 block text-right">${m.cuenta_origen} ➔ ${m.cuenta_destino}</span>`; }
             
-            return `<div class="flex justify-between items-center p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-2 hover:border-slate-300 transition-colors"><div><span class="text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${badge}">${m.tipo}</span><p class="font-bold text-slate-800 text-sm mt-1">${m.concepto}</p><p class="text-[9px] text-slate-400 mt-0.5">${m.fecha}</p></div><div class="flex items-center gap-4"><div class="text-right leading-tight">${valor}</div><button onclick="eliminarMovimiento(${m.id})" class="text-rose-300 hover:text-rose-600 transition-colors font-black">X</button></div></div>`;
+            // Ocultamos el boton X si está en modo auditoría
+            let btnEliminar = !isAuditor ? `<button onclick="eliminarMovimiento(${m.id})" class="text-rose-300 hover:text-rose-600 transition-colors font-black ml-4">X</button>` : '';
+
+            return `<div class="flex justify-between items-center p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-2 hover:border-slate-300 transition-colors"><div><span class="text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${badge}">${m.tipo}</span><p class="font-bold text-slate-800 text-sm mt-1">${m.concepto}</p><p class="text-[9px] text-slate-400 mt-0.5">${m.fecha}</p></div><div class="flex items-center"><div class="text-right leading-tight">${valor}</div>${btnEliminar}</div></div>`;
         }).join('');
         if(movimientos.length === 0) htmlMovs = '<p class="text-sm text-slate-400 italic p-4">El libro mayor está vacío.</p>';
 
         let htmlStock = prodsBajoStock.map(p => `<div class="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100 mb-2"><span class="font-bold text-rose-900 text-xs">${p.nombre}</span><span class="bg-rose-500 text-white px-2 py-1 rounded-lg font-black text-[10px]">Stock: ${p.stock}</span></div>`).join('');
         if(prodsBajoStock.length === 0) htmlStock = '<p class="text-sm text-emerald-500 italic p-4 font-bold">Todo el stock está en orden.</p>';
 
-        divContenido.innerHTML = `
-            <div class="mb-8 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        let onClickVolver = usuarioActual.rol === 'SYSADMIN' ? `cargarDashboard(${vistaDashboardActual})` : `cargarDashboard()`;
+
+        // Cabecera Dinámica (Auditor vs Dueño Real)
+        let headerHTML = isAuditor
+            ? `<div class="mb-8 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter">Auditoría: ${targetNombre}</h2>
+                    <button onclick="${onClickVolver}" class="text-blue-600 hover:bg-blue-100 bg-blue-50 px-4 py-2 rounded-xl font-black flex items-center gap-2 transition-colors mt-2 shadow-sm border border-blue-200">⬅ Volver al Resumen del Club</button>
+                </div>
+                <div class="text-left md:text-right bg-slate-900 p-4 rounded-2xl shadow-lg">
+                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Patrimonio Auditado</span>
+                    <span class="text-3xl md:text-4xl font-black text-white">$${stats.total}</span>
+                </div>
+               </div>`
+            : `<div class="mb-8 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h2 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter">Patrimonio: $${stats.total}</h2>
                     <div class="mt-2 text-slate-500 font-bold">Balance multicuentas de la subcomisión</div>
                 </div>
                 <button onclick="verDashboardSport()" class="bg-white text-slate-600 px-6 py-3 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-all">🔄 Actualizar</button>
-            </div>
+               </div>`;
+
+        // Botones de Acción (Ocultos en Auditoría)
+        let botonesAccionHTML = !isAuditor
+            ? `<div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
+                    <button onclick="abrirModalMovimiento('INGRESO')" class="shrink-0 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">+ Ingreso</button>
+                    <button onclick="abrirModalMovimiento('EGRESO')" class="shrink-0 bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">- Egreso</button>
+                    <button onclick="abrirModalMovimiento('TRANSFERENCIA')" class="shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-blue-200">🔄 Transferir</button>
+               </div>`
+            : `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">Modo Solo Lectura</span>`;
+
+        divContenido.innerHTML = `
+            ${headerHTML}
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
                 <div class="bg-emerald-50 p-6 rounded-[32px] border border-emerald-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -159,12 +192,8 @@ async function verDashboardSport() {
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
-                        <h3 class="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">📒 Libro Mayor (Movimientos)</h3>
-                        <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
-                            <button onclick="abrirModalMovimiento('INGRESO')" class="shrink-0 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">+ Ingreso</button>
-                            <button onclick="abrirModalMovimiento('EGRESO')" class="shrink-0 bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">- Egreso</button>
-                            <button onclick="abrirModalMovimiento('TRANSFERENCIA')" class="shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-blue-200">🔄 Transferir</button>
-                        </div>
+                        <h3 class="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">📒 Libro Mayor</h3>
+                        ${botonesAccionHTML}
                     </div>
                     <div class="bg-slate-50 p-4 rounded-[32px] border border-slate-200 shadow-inner h-[400px] overflow-y-auto">${htmlMovs}</div>
                 </div>
@@ -196,7 +225,20 @@ async function cargarDashboard(clubIdToView = null) {
         const res = await fetch(url, { headers: authH() }); const data = await res.json();
         let grillaHTML = '';
         if(data.length === 0) { grillaHTML = '<p class="text-slate-400 italic mt-4">Sin datos registrados.</p>'; } 
-        else { grillaHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">` + data.map(d => { const neto = d.total_ventas - d.total_gastos; let btnEntrar = ''; if (usuarioActual.rol === 'SYSADMIN' && !vistaDashboardActual) { btnEntrar = `<button onclick="cargarDashboard(${d.id})" class="mt-5 w-full bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all">Ver Actividades ➔</button>`; } return `<div class="bg-white p-6 rounded-[32px] shadow-sm border flex flex-col hover:shadow-lg transition-shadow"><div class="flex items-center gap-4 mb-4"><img src="${d.logo || d.imagen || 'https://via.placeholder.com/50'}" class="w-12 h-12 rounded-xl object-cover"><h3 class="text-xl font-black text-slate-800 leading-tight">${d.nombre}</h3></div><div class="space-y-2 mb-4"><div class="bg-emerald-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-emerald-600">INGRESOS</span><span class="font-black text-emerald-600">$${d.total_ventas}</span></div><div class="bg-rose-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-rose-600">GASTOS</span><span class="font-black text-rose-600">-$${d.total_gastos}</span></div></div><div class="border-t pt-3 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">NETO</span><span class="text-2xl font-black ${neto>=0?'text-slate-800':'text-rose-500'}">$${neto}</span></div>${btnEntrar}</div>`; }).join('') + `</div>`; }
+        else { 
+            grillaHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">` + data.map(d => { 
+                const neto = d.total_ventas - d.total_gastos; 
+                let btnEntrar = ''; 
+                if (usuarioActual.rol === 'SYSADMIN' && !vistaDashboardActual) { 
+                    btnEntrar = `<button onclick="cargarDashboard(${d.id})" class="mt-5 w-full bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all">Ver Subcomisiones ➔</button>`; 
+                } else {
+                    // BOTÓN ESTRELLA: El Dueño entra a auditar directamente
+                    btnEntrar = `<button onclick="verDashboardSport(${d.id}, '${d.nombre.replace(/'/g, "\\'")}')" class="mt-5 w-full bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white text-blue-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm">Auditar Movimientos ➔</button>`;
+                }
+                
+                return `<div class="bg-white p-6 rounded-[32px] shadow-sm border flex flex-col hover:shadow-lg transition-shadow"><div class="flex items-center gap-4 mb-4"><img src="${d.logo || d.imagen || 'https://via.placeholder.com/50'}" class="w-12 h-12 rounded-xl object-cover"><h3 class="text-xl font-black text-slate-800 leading-tight">${d.nombre}</h3></div><div class="space-y-2 mb-4"><div class="bg-emerald-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-emerald-600">INGRESOS</span><span class="font-black text-emerald-600">$${d.total_ventas}</span></div><div class="bg-rose-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-rose-600">GASTOS</span><span class="font-black text-rose-600">-$${d.total_gastos}</span></div></div><div class="border-t pt-3 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">NETO</span><span class="text-2xl font-black ${neto>=0?'text-slate-800':'text-rose-500'}">$${neto}</span></div>${btnEntrar}</div>`; 
+            }).join('') + `</div>`; 
+        }
         divContenido.innerHTML = `<div class="mb-10 border-b border-slate-200 pb-6 flex justify-between items-end"><div><h2 class="text-4xl font-black text-slate-800 tracking-tighter">${titulo}</h2><div class="mt-2">${subtitulo}</div></div><button onclick="cargarDashboard()" class="bg-white text-slate-600 px-6 py-3 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-all">🔄 Actualizar</button></div>${grillaHTML}`;
     } catch (e) {}
 }
