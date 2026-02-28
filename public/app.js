@@ -11,7 +11,7 @@ let categoriaActiva = 'TODOS';
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
 let ticketCierreDatos = {};
-let qrcodeGenerador = null; // Para el modal de Venta Movil
+let qrcodeGenerador = null; 
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -67,7 +67,10 @@ function configurarInterfazPorRol() {
     else if (usuarioActual.rol === 'CAJERO') {
         document.getElementById('header-entidad-nombre').innerText = `${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}`;
         if(usuarioActual.deporte_logo) { document.getElementById('header-logo').src = usuarioActual.deporte_logo; document.getElementById('header-logo').classList.remove('hidden'); document.getElementById('logo-default').classList.add('hidden'); }
-        ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-despacho'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+        
+        // ¡LA SOLUCIÓN ESTÁ AQUÍ! Le agregamos 'btn-pos-sport' al CAJERO para que siempre vea el botón de Vender y pueda volver.
+        ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-despacho', 'btn-pos-sport'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+        
         document.getElementById('panel-pos').classList.remove('hidden');
         if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
     }
@@ -209,7 +212,6 @@ function actualizarCarrito() {
     lista.innerHTML = carrito.map((x, i) => { 
         t += x.precio * x.cantidad; 
         let icono = x.categoria === 'COMIDA' ? '🍔' : (x.categoria === 'BEBIDA' ? '🥤' : '🏷️'); 
-        // HTML INYECTADO MÁS COMPACTO
         return `<div class="flex justify-between items-center bg-white p-1.5 lg:p-2.5 rounded-xl border border-slate-200 shadow-sm gap-2"><div class="flex gap-1.5 lg:gap-2 items-center min-w-0 flex-1"><span class="text-xs lg:text-base bg-slate-50 p-1 lg:p-1.5 rounded-lg border">${icono}</span><div class="min-w-0 flex-1"><p class="font-bold text-[9px] lg:text-[11px] truncate text-slate-800 leading-tight">${x.nombre}</p><p class="text-blue-600 font-black text-[11px] lg:text-sm leading-tight">$${x.precio}</p></div></div><div class="flex gap-1 items-center bg-slate-100 p-0.5 lg:p-1 rounded-lg border border-slate-200 shrink-0"><button onclick="cambiarCantidad(${i},-1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-rose-500 transition-colors flex items-center justify-center">-</button><span class="font-black text-[10px] lg:text-xs w-4 lg:w-5 text-center select-none">${x.cantidad}</span><button onclick="cambiarCantidad(${i},1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-emerald-500 transition-colors flex items-center justify-center">+</button></div></div>`; 
     }).join(''); 
     totalCarritoValor = t; 
@@ -253,10 +255,8 @@ async function confirmarVenta() {
         
         if(data.success) { 
             if (esMovil) {
-                // VENDEDOR MÓVIL: Muestra el QR gigante
                 mostrarModalQR(data.codigo_retiro);
             } else {
-                // MOSTRADOR NORMAL: Imprime Ticket
                 generarTicketVenta(); 
                 setTimeout(() => { 
                     window.print(); 
@@ -288,7 +288,7 @@ function mostrarModalQR(codigo) {
     container.innerHTML = ''; 
     qrcodeGenerador = new QRCode(container, {
         text: codigo,
-        width: 180, // un poco más chico para que entre bien en celulares chiquitos
+        width: 180, 
         height: 180,
         colorDark : "#000000",
         colorLight : "#ffffff",
