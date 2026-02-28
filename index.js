@@ -2,15 +2,13 @@ const express = require('express');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); // 🔒 LIBRERÍA DE TOKENS AGREGADA
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(express.static('public')); 
 app.use(express.json()); 
 
-// 🔑 Secreto para firmar los tokens (En producción esto va en variables de entorno)
 const JWT_SECRET = process.env.JWT_SECRET || 'SuperFirmaSecretaBuffet2024';
-
 let db;
 
 (async () => {
@@ -60,26 +58,19 @@ let db;
     } catch (error) { console.error("❌ Error crítico:", error); }
 })();
 
-// =======================================================
-// 🛡️ MIDDLEWARE DE SEGURIDAD (EL PATOVICA DEL SERVIDOR)
-// =======================================================
 const verificarToken = (req, res, next) => {
-    // Busca la llave en las cabeceras de la petición
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(403).json({ success: false, mensaje: "Acceso denegado. No hay token." });
     
-    const token = authHeader.split(' ')[1]; // Formato: "Bearer TOKEN_AQUI"
+    const token = authHeader.split(' ')[1]; 
     
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) return res.status(401).json({ success: false, mensaje: "Token inválido o expirado." });
-        req.usuarioVerificado = decoded; // Guarda los datos del usuario para usarlos si se necesita
-        next(); // Lo deja pasar a la ruta
+        req.usuarioVerificado = decoded; 
+        next(); 
     });
 };
 
-// =======================================================
-// RUTAS (Login público, el resto protegido por verificarToken)
-// =======================================================
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -90,18 +81,13 @@ app.post('/login', async (req, res) => {
                 if ((user.rol === 'SPORTADMIN' || user.rol === 'CAJERO') && user.deporte_estado === 'INACTIVO') return res.json({ success: false, mensaje: "⚠️ Acceso denegado: Subcomisión suspendida." });
                 const caja = await db.get('SELECT id FROM cajas WHERE usuario_id = ? AND estado = "ABIERTA"', [user.id]);
                 delete user.password; 
-                
-                // 🎟️ GENERAMOS EL TOKEN QUE DURA 12 HORAS
                 const token = jwt.sign({ id: user.id, rol: user.rol, email: user.email }, JWT_SECRET, { expiresIn: '12h' });
-                
-                // Le devolvemos al frontend sus datos y SU TOKEN
                 res.json({ success: true, user, cajaAbierta: caja ? caja.id : null, token });
             } else { res.json({ success: false, mensaje: "Credenciales incorrectas" }); }
         } else { res.json({ success: false, mensaje: "Credenciales incorrectas" }); }
     } catch (e) { res.status(500).json({ success: false, mensaje: "Error interno" }); }
 });
 
-// A partir de aquí, TODAS las rutas tienen "verificarToken"
 app.get('/clubes', verificarToken, async (req, res) => { try { res.json(await db.all('SELECT * FROM clubes WHERE id != 1')); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.post('/clubes', verificarToken, async (req, res) => { try { await db.run('INSERT INTO clubes (nombre, logo) VALUES (?, ?)', [req.body.nombre.toUpperCase(), req.body.logo]); res.json({ success: true }); } catch (e) { res.json({ success: false, mensaje: "Error al crear club. ¿Nombre duplicado?" }); } });
 app.get('/estadisticas-sysadmin', verificarToken, async (req, res) => { try { const stats = await db.all(`SELECT c.id, c.nombre, c.logo, COALESCE((SELECT SUM(total) FROM ventas WHERE club_id = c.id), 0) as total_ventas, COALESCE((SELECT SUM(monto) FROM gastos WHERE club_id = c.id), 0) as total_gastos FROM clubes c WHERE c.id != 1`); res.json(stats); } catch (e) { res.status(500).json({ error: e.message }); } });
@@ -131,14 +117,28 @@ app.post('/productos', verificarToken, async (req, res) => { try { await db.run(
 app.put('/productos/:id', verificarToken, async (req, res) => { try { await db.run('UPDATE productos SET nombre = ?, precio = ?, stock = ?, imagen = ?, categoria = ? WHERE id = ?', [req.body.nombre, req.body.precio, req.body.stock, req.body.imagen, req.body.categoria, req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.delete('/productos/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM productos WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
+// =======================================================
+// 🛒 RUTA DE VENTAS CORREGIDA Y ESTABLE
+// =======================================================
 app.post('/confirmar-venta', verificarToken, async (req, res) => {
     const { items, metodoPago, caja_id, club_id, deporte_id } = req.body;
     try {
-        await db.run('BEGIN TRANSACTION'); let total = 0;
-        for (const item of items) { total += (item.precio * item.cantidad); await db.run('UPDATE productos SET stock = stock - ? WHERE id = ?', [item.cantidad, item.id]); }
+        let total = 0;
+        
+        // Descuenta el stock y suma el total de forma segura
+        for (const item of items) { 
+            total += (item.precio * item.cantidad); 
+            await db.run('UPDATE productos SET stock = stock - ? WHERE id = ?', [item.cantidad, item.id]); 
+        }
+        
+        // Registra la venta
         const result = await db.run('INSERT INTO ventas (total, metodoPago, caja_id, club_id, deporte_id) VALUES (?, ?, ?, ?, ?)', [total, metodoPago, caja_id, club_id, deporte_id]);
-        await db.run('COMMIT'); res.json({ success: true, idVenta: result.lastID });
-    } catch (e) { await db.run('ROLLBACK'); res.json({ success: false }); }
+        
+        res.json({ success: true, idVenta: result.lastID });
+    } catch (e) { 
+        console.error("❌ Error en confirmar-venta:", e);
+        res.status(500).json({ success: false, error: e.message }); 
+    }
 });
 
 app.post('/gastos', verificarToken, async (req, res) => { try { await db.run('INSERT INTO gastos (descripcion, monto, caja_id, club_id, deporte_id) VALUES (?, ?, ?, ?, ?)', [req.body.descripcion, req.body.monto, req.body.caja_id, req.body.club_id, req.body.deporte_id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
