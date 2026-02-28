@@ -16,9 +16,6 @@ let qrcodeGenerador = null;
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
 
-// =========================================================
-// INICIALIZADOR: PERSISTENCIA DE SESIÓN (ANTI-F5)
-// =========================================================
 window.onload = () => {
     const tokenGuardado = sessionStorage.getItem('pos_token');
     const usuarioGuardado = sessionStorage.getItem('pos_user');
@@ -28,15 +25,11 @@ window.onload = () => {
         tokenGlobal = tokenGuardado;
         usuarioActual = JSON.parse(usuarioGuardado);
         cajaActualId = cajaGuardada !== "null" ? cajaGuardada : null;
-        
         document.getElementById('pantalla-login').style.display = 'none'; 
         configurarInterfazPorRol();
     }
 };
 
-// =========================================================
-// AUTENTICACIÓN Y ROLES
-// =========================================================
 async function intentarLogin() {
     const email = document.getElementById('login-email').value; 
     const password = document.getElementById('login-pass').value;
@@ -47,12 +40,9 @@ async function intentarLogin() {
             usuarioActual = data.user; 
             cajaActualId = data.cajaAbierta; 
             tokenGlobal = data.token; 
-            
-            // GUARDAMOS EN LA MEMORIA DEL NAVEGADOR
             sessionStorage.setItem('pos_token', data.token);
             sessionStorage.setItem('pos_user', JSON.stringify(data.user));
             sessionStorage.setItem('pos_caja', data.cajaAbierta);
-
             document.getElementById('pantalla-login').style.display = 'none'; 
             configurarInterfazPorRol(); 
         } else { alert(data.mensaje); }
@@ -91,23 +81,14 @@ function configurarInterfazPorRol() {
     else if (usuarioActual.rol === 'CAJERO') {
         document.getElementById('header-entidad-nombre').innerText = `${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}`;
         if(usuarioActual.deporte_logo) { document.getElementById('header-logo').src = usuarioActual.deporte_logo; document.getElementById('header-logo').classList.remove('hidden'); document.getElementById('logo-default').classList.add('hidden'); }
-        
         ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-despacho', 'btn-pos-sport'].forEach(id => document.getElementById(id).classList.remove('hidden'));
-        
         document.getElementById('panel-pos').classList.remove('hidden');
         if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
     }
 }
 
-function cerrarSesion() { 
-    tokenGlobal = null; 
-    sessionStorage.clear(); // Limpiamos la memoria al salir
-    window.location.reload(); 
-}
+function cerrarSesion() { tokenGlobal = null; sessionStorage.clear(); window.location.reload(); }
 
-// =========================================================
-// NAVEGACIÓN DE PANTALLAS
-// =========================================================
 function verPOS() {
     document.getElementById('panel-dashboard').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
@@ -116,6 +97,9 @@ function verPOS() {
     if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
 }
 
+// =========================================================
+// DASHBOARD MULTICUENTAS (SPORTADMIN)
+// =========================================================
 async function verDashboardSport() {
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
@@ -123,7 +107,7 @@ async function verDashboardSport() {
     document.getElementById('panel-dashboard').classList.remove('hidden');
     
     const divContenido = document.getElementById('contenido-dashboard');
-    divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas de la subcomisión...</p>';
+    divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas y billeteras...</p>';
 
     try {
         const resStats = await fetch(`/estadisticas-subcomision/${usuarioActual.deporte_id}`, { headers: authH() }); const stats = await resStats.json();
@@ -132,20 +116,69 @@ async function verDashboardSport() {
         const resProds = await fetch(`/productos/${usuarioActual.deporte_id}`, { headers: authH() }); const prods = await resProds.json();
         const prodsBajoStock = prods.filter(p => p.stock <= 10).sort((a,b) => a.stock - b.stock);
 
-        const totalIngresos = stats.ventas_pos + stats.ingresos_extra;
-        const totalEgresos = stats.gastos_pos + stats.egresos_extra;
-        const neto = totalIngresos - totalEgresos;
-
         let htmlCajas = cajas.map(c => `<div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm mb-2"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-xs ${c.estado === 'ABIERTA' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}">${c.estado === 'ABIERTA' ? 'ON' : 'OFF'}</div><div><p class="font-bold text-slate-800 text-sm">${c.cajero_nombre || 'Desconocido'}</p><p class="text-[10px] text-slate-400 mt-0.5">Apertura: ${c.fecha_apertura}</p></div></div><div class="text-right"><p class="font-black text-slate-800">$${c.total_ingresos}</p><p class="text-[10px] text-rose-500 font-bold">Gastos: -$${c.total_gastos}</p></div></div>`).join('');
         if(cajas.length === 0) htmlCajas = '<p class="text-sm text-slate-400 italic p-4">No hay turnos registrados.</p>';
 
-        let htmlMovs = movimientos.map(m => `<div class="flex justify-between items-center p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-2 hover:border-slate-300 transition-colors"><div><span class="text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${m.tipo === 'INGRESO' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">${m.tipo}</span><p class="font-bold text-slate-800 text-sm mt-1">${m.concepto}</p><p class="text-[9px] text-slate-400 mt-0.5">${m.fecha}</p></div><div class="flex items-center gap-4"><span class="font-black text-lg ${m.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-rose-600'}">${m.tipo === 'INGRESO' ? '+' : '-'}$${m.monto}</span><button onclick="eliminarMovimiento(${m.id})" class="text-rose-300 hover:text-rose-600 transition-colors font-black">X</button></div></div>`).join('');
+        let htmlMovs = movimientos.map(m => {
+            let badge = ''; let valor = '';
+            if (m.tipo === 'INGRESO') { badge = 'bg-emerald-100 text-emerald-600'; valor = `<span class="text-emerald-600 font-black">+ $${m.monto}</span> <span class="text-[9px] text-slate-400 block text-right">${m.cuenta_origen}</span>`; }
+            else if (m.tipo === 'EGRESO') { badge = 'bg-rose-100 text-rose-600'; valor = `<span class="text-rose-600 font-black">- $${m.monto}</span> <span class="text-[9px] text-slate-400 block text-right">${m.cuenta_origen}</span>`; }
+            else { badge = 'bg-blue-100 text-blue-600'; valor = `<span class="text-blue-600 font-black">🔄 $${m.monto}</span> <span class="text-[9px] text-slate-400 block text-right">${m.cuenta_origen} ➔ ${m.cuenta_destino}</span>`; }
+            
+            return `<div class="flex justify-between items-center p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-2 hover:border-slate-300 transition-colors"><div><span class="text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${badge}">${m.tipo}</span><p class="font-bold text-slate-800 text-sm mt-1">${m.concepto}</p><p class="text-[9px] text-slate-400 mt-0.5">${m.fecha}</p></div><div class="flex items-center gap-4"><div class="text-right leading-tight">${valor}</div><button onclick="eliminarMovimiento(${m.id})" class="text-rose-300 hover:text-rose-600 transition-colors font-black">X</button></div></div>`;
+        }).join('');
         if(movimientos.length === 0) htmlMovs = '<p class="text-sm text-slate-400 italic p-4">El libro mayor está vacío.</p>';
 
         let htmlStock = prodsBajoStock.map(p => `<div class="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100 mb-2"><span class="font-bold text-rose-900 text-xs">${p.nombre}</span><span class="bg-rose-500 text-white px-2 py-1 rounded-lg font-black text-[10px]">Stock: ${p.stock}</span></div>`).join('');
         if(prodsBajoStock.length === 0) htmlStock = '<p class="text-sm text-emerald-500 italic p-4 font-bold">Todo el stock está en orden.</p>';
 
-        divContenido.innerHTML = `<div class="mb-8 border-b border-slate-200 pb-6 flex justify-between items-end"><div><h2 class="text-4xl font-black text-slate-800 tracking-tighter">Tesorería General</h2><div class="mt-2 text-slate-500 font-bold">Balance total de la subcomisión (Cajas POS + Libro Mayor)</div></div><button onclick="verDashboardSport()" class="bg-white text-slate-600 px-6 py-3 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-all">🔄 Actualizar</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"><div class="bg-emerald-50 p-6 rounded-[32px] border border-emerald-100 flex flex-col justify-between"><div><span class="text-emerald-600 font-black text-xs uppercase tracking-widest block mb-1">Ingresos Totales</span><span class="text-4xl font-black text-emerald-700">$${totalIngresos}</span></div><div class="mt-4 text-[10px] text-emerald-600/70 font-bold border-t border-emerald-200/50 pt-2 flex justify-between"><span>POS: $${stats.ventas_pos}</span><span>Extras: $${stats.ingresos_extra}</span></div></div><div class="bg-rose-50 p-6 rounded-[32px] border border-rose-100 flex flex-col justify-between"><div><span class="text-rose-600 font-black text-xs uppercase tracking-widest block mb-1">Egresos Totales</span><span class="text-4xl font-black text-rose-700">-$${totalEgresos}</span></div><div class="mt-4 text-[10px] text-rose-600/70 font-bold border-t border-rose-200/50 pt-2 flex justify-between"><span>POS: $${stats.gastos_pos}</span><span>Extras: $${stats.egresos_extra}</span></div></div><div class="bg-slate-900 p-6 rounded-[32px] shadow-xl flex flex-col justify-center"><span class="text-slate-400 font-black text-xs uppercase tracking-widest block mb-2">Balance Neto Actual</span><span class="text-5xl font-black ${neto >= 0 ? 'text-white' : 'text-rose-400'}">$${neto}</span></div></div><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2"><div class="flex justify-between items-end mb-6"><h3 class="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">📒 Libro Mayor (Movimientos Extra)</h3><div class="flex gap-2"><button onclick="abrirModalMovimiento('INGRESO')" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">+ Ingreso</button><button onclick="abrirModalMovimiento('EGRESO')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">- Egreso</button></div></div><div class="bg-slate-50 p-4 rounded-[32px] border border-slate-200 shadow-inner h-[400px] overflow-y-auto">${htmlMovs}</div></div><div class="space-y-8"><div><h3 class="font-black text-slate-800 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">🛒 Turnos de Caja (POS)</h3><div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[220px] overflow-y-auto">${htmlCajas}</div></div><div><h3 class="font-black text-rose-600 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">⚠️ Alerta Stock Crítico</h3><div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[160px] overflow-y-auto">${htmlStock}</div></div></div></div>`;
+        divContenido.innerHTML = `
+            <div class="mb-8 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter">Patrimonio: $${stats.total}</h2>
+                    <div class="mt-2 text-slate-500 font-bold">Balance multicuentas de la subcomisión</div>
+                </div>
+                <button onclick="verDashboardSport()" class="bg-white text-slate-600 px-6 py-3 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-all">🔄 Actualizar</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+                <div class="bg-emerald-50 p-6 rounded-[32px] border border-emerald-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <span class="text-emerald-700 font-black text-xs uppercase tracking-widest block mb-2">💵 Efectivo (Caja)</span>
+                    <span class="text-4xl font-black text-emerald-900">$${stats.saldo_efectivo}</span>
+                </div>
+                <div class="bg-blue-50 p-6 rounded-[32px] border border-blue-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <span class="text-blue-700 font-black text-xs uppercase tracking-widest block mb-2">🏦 Banco (CBU/CVU)</span>
+                    <span class="text-4xl font-black text-blue-900">$${stats.saldo_banco}</span>
+                </div>
+                <div class="bg-purple-50 p-6 rounded-[32px] border border-purple-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <span class="text-purple-700 font-black text-xs uppercase tracking-widest block mb-2">🏛️ Mutual</span>
+                    <span class="text-4xl font-black text-purple-900">$${stats.saldo_mutual}</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                        <h3 class="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">📒 Libro Mayor (Movimientos)</h3>
+                        <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
+                            <button onclick="abrirModalMovimiento('INGRESO')" class="shrink-0 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">+ Ingreso</button>
+                            <button onclick="abrirModalMovimiento('EGRESO')" class="shrink-0 bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">- Egreso</button>
+                            <button onclick="abrirModalMovimiento('TRANSFERENCIA')" class="shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-blue-200">🔄 Transferir</button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-[32px] border border-slate-200 shadow-inner h-[400px] overflow-y-auto">${htmlMovs}</div>
+                </div>
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="font-black text-slate-800 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">🛒 Turnos de Caja (POS)</h3>
+                        <div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[220px] overflow-y-auto">${htmlCajas}</div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-rose-600 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">⚠️ Alerta Stock Crítico</h3>
+                        <div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[160px] overflow-y-auto">${htmlStock}</div>
+                    </div>
+                </div>
+            </div>`;
     } catch (e) { divContenido.innerHTML = '<p class="text-center text-rose-500 font-bold mt-10">Error al cargar métricas.</p>'; }
 }
 
@@ -191,18 +224,66 @@ async function crearUsuario() { const n = document.getElementById('user-nombre')
 async function eliminarUsuario(id) { if(confirm("¿Eliminar permanentemente?")) { await fetch(`/usuarios/${id}`, {method: 'DELETE', headers:authH()}); listarUsuarios(); } }
 
 // =========================================================
-// MOVIMIENTOS Y LIBRO MAYOR
+// LÓGICA DE MOVIMIENTOS Y TRANSFERENCIAS INTERNAS
 // =========================================================
 function abrirModalMovimiento(tipo) {
-    document.getElementById('movimiento-tipo').value = tipo; document.getElementById('titulo-movimiento').innerText = tipo === 'INGRESO' ? 'Nuevo Ingreso' : 'Nuevo Egreso'; document.getElementById('icono-movimiento').innerText = tipo === 'INGRESO' ? '💰' : '📉'; document.getElementById('icono-movimiento').className = tipo === 'INGRESO' ? 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4 bg-emerald-100' : 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4 bg-rose-100'; document.getElementById('btn-guardar-mov').className = tipo === 'INGRESO' ? 'flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg bg-emerald-500 hover:bg-emerald-600 text-sm md:text-base' : 'flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg bg-rose-500 hover:bg-rose-600 text-sm md:text-base';
-    document.getElementById('movimiento-concepto').value = ''; document.getElementById('movimiento-monto').value = ''; abrirModal('modal-movimiento');
+    document.getElementById('movimiento-tipo').value = tipo; 
+    const contDestino = document.getElementById('contenedor-destino');
+    
+    document.getElementById('movimiento-concepto').value = ''; 
+    document.getElementById('movimiento-monto').value = '';
+
+    if (tipo === 'TRANSFERENCIA') {
+        document.getElementById('titulo-movimiento').innerText = 'Transferir Fondos'; 
+        document.getElementById('icono-movimiento').innerText = '🔄'; 
+        document.getElementById('icono-movimiento').className = 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4 bg-blue-100 text-blue-600'; 
+        document.getElementById('btn-guardar-mov').className = 'flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg bg-blue-500 hover:bg-blue-600 text-sm md:text-base';
+        contDestino.classList.remove('hidden');
+        document.getElementById('movimiento-concepto').value = 'Transferencia Interna';
+    } else if (tipo === 'INGRESO') {
+        document.getElementById('titulo-movimiento').innerText = 'Nuevo Ingreso'; 
+        document.getElementById('icono-movimiento').innerText = '💰'; 
+        document.getElementById('icono-movimiento').className = 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4 bg-emerald-100 text-emerald-600'; 
+        document.getElementById('btn-guardar-mov').className = 'flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg bg-emerald-500 hover:bg-emerald-600 text-sm md:text-base';
+        contDestino.classList.add('hidden');
+    } else {
+        document.getElementById('titulo-movimiento').innerText = 'Nuevo Egreso'; 
+        document.getElementById('icono-movimiento').innerText = '📉'; 
+        document.getElementById('icono-movimiento').className = 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4 bg-rose-100 text-rose-600'; 
+        document.getElementById('btn-guardar-mov').className = 'flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg bg-rose-500 hover:bg-rose-600 text-sm md:text-base';
+        contDestino.classList.add('hidden');
+    }
+    
+    abrirModal('modal-movimiento');
 }
+
 async function guardarMovimiento() {
-    const t = document.getElementById('movimiento-tipo').value; const c = document.getElementById('movimiento-concepto').value; const m = document.getElementById('movimiento-monto').value;
+    const t = document.getElementById('movimiento-tipo').value; 
+    const c = document.getElementById('movimiento-concepto').value; 
+    const m = document.getElementById('movimiento-monto').value;
+    const origen = document.getElementById('movimiento-origen').value;
+    const destino = document.getElementById('movimiento-destino').value;
+
     if(!c || !m) return alert("Completa el concepto y el monto.");
-    await fetch('/movimientos', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id, tipo: t, concepto: c, monto: m }) });
-    cerrarModalGenerico('modal-movimiento'); verDashboardSport();
+    if (t === 'TRANSFERENCIA' && origen === destino) return alert("La cuenta de origen y destino no pueden ser la misma.");
+
+    await fetch('/movimientos', { 
+        method: 'POST', 
+        headers: authJsonH(), 
+        body: JSON.stringify({ 
+            club_id: usuarioActual.club_id, 
+            deporte_id: usuarioActual.deporte_id, 
+            tipo: t, 
+            concepto: c, 
+            monto: m,
+            cuenta_origen: origen,
+            cuenta_destino: t === 'TRANSFERENCIA' ? destino : null
+        }) 
+    });
+    cerrarModalGenerico('modal-movimiento'); 
+    verDashboardSport();
 }
+
 async function eliminarMovimiento(id) { if(confirm("¿Seguro que deseas eliminar este registro?")) { await fetch(`/movimientos/${id}`, { method: 'DELETE', headers: authH() }); verDashboardSport(); } }
 
 // =========================================================
@@ -309,21 +390,11 @@ function mostrarModalQR(codigo) {
     document.getElementById('qr-codigo-texto').innerText = codigo;
     const container = document.getElementById('qr-container');
     container.innerHTML = ''; 
-    qrcodeGenerador = new QRCode(container, {
-        text: codigo,
-        width: 180, 
-        height: 180,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-    });
+    qrcodeGenerador = new QRCode(container, { text: codigo, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
     document.getElementById('modal-qr').classList.replace('hidden', 'flex');
 }
 
-function cerrarModalQR() {
-    document.getElementById('modal-qr').classList.replace('flex', 'hidden');
-    limpiarVentaExitosa();
-}
+function cerrarModalQR() { document.getElementById('modal-qr').classList.replace('flex', 'hidden'); limpiarVentaExitosa(); }
 
 function verDespacho() {
     document.getElementById('panel-dashboard').classList.add('hidden');
@@ -334,99 +405,46 @@ function verDespacho() {
     setTimeout(() => document.getElementById('input-codigo-despacho').focus(), 300);
 }
 
-async function cargarTodoDespacho() {
-    cargarPendientesDespacho();
-    cargarEntregadosDespacho();
-}
+async function cargarTodoDespacho() { cargarPendientesDespacho(); cargarEntregadosDespacho(); }
 
 async function cargarPendientesDespacho() {
     const res = await fetch(`/despacho/pendientes/${usuarioActual.deporte_id}`, { headers: authH() });
     const ventas = await res.json();
     const grilla = document.getElementById('grilla-pendientes');
-    
-    if (ventas.length === 0) {
-        grilla.innerHTML = '<p class="text-slate-400 font-bold italic col-span-full text-center mt-6">No hay pedidos pendientes en la fila.</p>';
-        return;
-    }
-    
+    if (ventas.length === 0) { grilla.innerHTML = '<p class="text-slate-400 font-bold italic col-span-full text-center mt-6">No hay pedidos pendientes en la fila.</p>'; return; }
     grilla.innerHTML = ventas.map(v => `
         <div class="bg-white p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border border-orange-200 flex flex-col gap-3 hover:shadow-md transition-shadow">
             <div class="flex justify-between items-center border-b border-orange-100 pb-2">
                 <span class="text-2xl md:text-3xl font-black text-slate-800">${v.codigo_retiro}</span>
                 <span class="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-100 px-2 py-1 rounded-md">${v.fecha.split(' ')[1]}</span>
             </div>
-            <ul class="text-xs md:text-sm font-bold text-slate-600 space-y-1 my-1 md:my-2">
-                ${v.items.map(i => `<li>🔸 ${i.cantidad}x ${i.producto_nombre}</li>`).join('')}
-            </ul>
+            <ul class="text-xs md:text-sm font-bold text-slate-600 space-y-1 my-1 md:my-2">${v.items.map(i => `<li>🔸 ${i.cantidad}x ${i.producto_nombre}</li>`).join('')}</ul>
             <button onclick="entregarPedido(${v.id})" class="mt-auto w-full bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white py-2.5 md:py-3 rounded-lg md:rounded-xl font-black transition-colors text-xs md:text-sm">✔️ ENTREGAR</button>
-        </div>
-    `).join('');
+        </div>`).join('');
 }
 
 async function cargarEntregadosDespacho() {
     const res = await fetch(`/despacho/entregados/${usuarioActual.deporte_id}`, { headers: authH() });
     const ventas = await res.json();
     const contenedor = document.getElementById('grilla-entregados');
-    
-    if (ventas.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 font-bold italic text-center mt-6 text-xs">Aún no hay despachos completados.</p>';
-        return;
-    }
-    
+    if (ventas.length === 0) { contenedor.innerHTML = '<p class="text-slate-400 font-bold italic text-center mt-6 text-xs">Aún no hay despachos completados.</p>'; return; }
     contenedor.innerHTML = ventas.map(v => `
         <div class="bg-emerald-50 p-3 rounded-xl md:rounded-2xl border border-emerald-100 flex justify-between items-center opacity-80 hover:opacity-100 transition-opacity">
-            <div>
-                <span class="text-lg font-black text-emerald-800">${v.codigo_retiro}</span>
-                <p class="text-[10px] text-emerald-600/80 font-bold leading-tight mt-0.5">${v.items.map(i => `${i.cantidad}x ${i.producto_nombre}`).join(', ')}</p>
-            </div>
+            <div><span class="text-lg font-black text-emerald-800">${v.codigo_retiro}</span><p class="text-[10px] text-emerald-600/80 font-bold leading-tight mt-0.5">${v.items.map(i => `${i.cantidad}x ${i.producto_nombre}`).join(', ')}</p></div>
             <span class="text-[8px] bg-emerald-200 text-emerald-800 px-2 py-1 rounded-md font-black shrink-0 ml-2 shadow-sm">ENTREGADO</span>
-        </div>
-    `).join('');
+        </div>`).join('');
 }
 
 async function buscarTicketDespacho() {
-    const input = document.getElementById('input-codigo-despacho');
-    const codigo = input.value.trim();
-    if(!codigo) return;
-    
-    const res = await fetch(`/despacho/buscar/${codigo}/${usuarioActual.deporte_id}`, { headers: authH() });
-    const data = await res.json();
-    
-    const divRes = document.getElementById('resultado-escaneo');
-    divRes.classList.remove('hidden');
-    
-    if (!data.success) {
-        divRes.className = 'mb-6 md:mb-8 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-lg border-2 border-rose-500 bg-rose-50 text-center';
-        divRes.innerHTML = `<h3 class="text-xl md:text-2xl font-black text-rose-600">${data.mensaje}</h3>`;
-        input.value = '';
-        setTimeout(() => divRes.classList.add('hidden'), 3500);
-        return;
-    }
-    
-    const v = data.venta;
-    divRes.className = 'mb-6 md:mb-8 p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border-2 border-emerald-500 bg-emerald-50';
-    divRes.innerHTML = `
-        <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-6 gap-2 md:gap-4">
-            <h3 class="text-3xl md:text-5xl font-black text-emerald-700 tracking-tighter">${v.codigo_retiro}</h3>
-            <span class="bg-emerald-200 text-emerald-800 px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest shadow-inner">PAGADO VÁLIDO</span>
-        </div>
-        <div class="bg-white p-4 md:p-6 rounded-xl md:rounded-2xl border border-emerald-100 shadow-sm mb-4 md:mb-6">
-            <p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">Entregar al cliente:</p>
-            <ul class="text-lg md:text-2xl font-black text-slate-700 space-y-2 md:space-y-3">
-                ${v.items.map(i => `<li>🔸 ${i.cantidad}x ${i.producto_nombre}</li>`).join('')}
-            </ul>
-        </div>
-        <button onclick="entregarPedido(${v.id})" class="w-full bg-emerald-600 text-white py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-[0_10px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition-colors">✔️ MARCAR COMO ENTREGADO Y CERRAR</button>
-    `;
-    input.value = '';
+    const input = document.getElementById('input-codigo-despacho'); const codigo = input.value.trim(); if(!codigo) return;
+    const res = await fetch(`/despacho/buscar/${codigo}/${usuarioActual.deporte_id}`, { headers: authH() }); const data = await res.json();
+    const divRes = document.getElementById('resultado-escaneo'); divRes.classList.remove('hidden');
+    if (!data.success) { divRes.className = 'mb-6 md:mb-8 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-lg border-2 border-rose-500 bg-rose-50 text-center'; divRes.innerHTML = `<h3 class="text-xl md:text-2xl font-black text-rose-600">${data.mensaje}</h3>`; input.value = ''; setTimeout(() => divRes.classList.add('hidden'), 3500); return; }
+    const v = data.venta; divRes.className = 'mb-6 md:mb-8 p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border-2 border-emerald-500 bg-emerald-50';
+    divRes.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-6 gap-2 md:gap-4"><h3 class="text-3xl md:text-5xl font-black text-emerald-700 tracking-tighter">${v.codigo_retiro}</h3><span class="bg-emerald-200 text-emerald-800 px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest shadow-inner">PAGADO VÁLIDO</span></div><div class="bg-white p-4 md:p-6 rounded-xl md:rounded-2xl border border-emerald-100 shadow-sm mb-4 md:mb-6"><p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">Entregar al cliente:</p><ul class="text-lg md:text-2xl font-black text-slate-700 space-y-2 md:space-y-3">${v.items.map(i => `<li>🔸 ${i.cantidad}x ${i.producto_nombre}</li>`).join('')}</ul></div><button onclick="entregarPedido(${v.id})" class="w-full bg-emerald-600 text-white py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-[0_10px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition-colors">✔️ MARCAR COMO ENTREGADO Y CERRAR</button>`; input.value = '';
 }
 
-async function entregarPedido(id) {
-    await fetch(`/despacho/entregar/${id}`, { method: 'PUT', headers: authH() });
-    document.getElementById('resultado-escaneo').classList.add('hidden');
-    cargarTodoDespacho(); 
-    document.getElementById('input-codigo-despacho').focus();
-}
+async function entregarPedido(id) { await fetch(`/despacho/entregar/${id}`, { method: 'PUT', headers: authH() }); document.getElementById('resultado-escaneo').classList.add('hidden'); cargarTodoDespacho(); document.getElementById('input-codigo-despacho').focus(); }
 
 function generarTicketVenta() { 
     const t = document.getElementById('ticket-impresion'); 
@@ -435,53 +453,14 @@ function generarTicketVenta() {
     const comidas = carrito.filter(i => i.categoria === 'COMIDA'); 
     const bebidas = carrito.filter(i => i.categoria === 'BEBIDA'); 
     const otros = carrito.filter(i => i.categoria !== 'COMIDA' && i.categoria !== 'BEBIDA'); 
-    
     let htmlTicket = ''; 
     
-    if (bebidas.length > 0) { 
-        let itemsBebida = bebidas.map(x => { 
-            let subtotal = x.precio * x.cantidad;
-            totalGeneral += subtotal; 
-            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; 
-        }).join(''); 
-        htmlTicket += `<div class="ticket-section"><div class="ticket-title">TICKET BEBIDA 🥤</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsBebida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
-    } 
+    if (bebidas.length > 0) { let itemsBebida = bebidas.map(x => { let subtotal = x.precio * x.cantidad; totalGeneral += subtotal; return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; }).join(''); htmlTicket += `<div class="ticket-section"><div class="ticket-title">TICKET BEBIDA 🥤</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsBebida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; } 
+    if (comidas.length > 0) { let itemsComida = comidas.map(x => { let subtotal = x.precio * x.cantidad; totalGeneral += subtotal; return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; }).join(''); htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET COMIDA 🍔</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsComida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; } 
+    if (otros.length > 0) { let itemsOtros = otros.map(x => { let subtotal = x.precio * x.cantidad; totalGeneral += subtotal; return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; }).join(''); htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET VARIOS 🛒</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsOtros}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; }
     
-    if (comidas.length > 0) { 
-        let itemsComida = comidas.map(x => { 
-            let subtotal = x.precio * x.cantidad;
-            totalGeneral += subtotal; 
-            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; 
-        }).join(''); 
-        htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET COMIDA 🍔</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsComida}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
-    } 
-    
-    if (otros.length > 0) { 
-        let itemsOtros = otros.map(x => { 
-            let subtotal = x.precio * x.cantidad;
-            totalGeneral += subtotal; 
-            return `<div class="ticket-item"><span>${x.cantidad}x ${x.nombre.substring(0,16)}</span><span>$${subtotal}</span></div>`; 
-        }).join(''); 
-        htmlTicket += `<div class="ticket-section" style="margin-top:10px;"><div class="ticket-title">TICKET VARIOS 🛒</div><div style="text-align:center; font-size:10px; margin-bottom:5px;">${fechaStr}</div>${itemsOtros}</div><div class="cut-line">✂ - - - CORTAR AQUI - - - ✂</div>`; 
-    }
-    
-    htmlTicket += `
-        <div style="margin-top:10px; text-align:center;">
-            <h3 style="margin:0; font-size:14px; font-weight:bold;">${usuarioActual.club_nombre}</h3>
-            <p style="margin:0; font-size:10px;">${usuarioActual.deporte_nombre}</p>
-        </div>
-        <div style="margin-top:10px; font-size:11px;">
-            <p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p>
-            <p style="margin:2px 0;"><b>PAGO:</b> ${metodoSeleccionado.toUpperCase()}</p>
-            <p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p>
-        </div>
-        <div style="border-top:2px solid #000; margin-top:10px; padding-top:5px; display:flex; justify-content:space-between; font-size:18px; font-weight:900;">
-            <span>TOTAL</span><span>$${totalGeneral}</span>
-        </div>
-        <p style="text-align:center; font-size:9px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>
-    `; 
-    t.style.display = 'block'; 
-    t.innerHTML = htmlTicket; 
+    htmlTicket += `<div style="margin-top:10px; text-align:center;"><h3 style="margin:0; font-size:14px; font-weight:bold;">${usuarioActual.club_nombre}</h3><p style="margin:0; font-size:10px;">${usuarioActual.deporte_nombre}</p></div><div style="margin-top:10px; font-size:11px;"><p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p><p style="margin:2px 0;"><b>PAGO:</b> ${metodoSeleccionado.toUpperCase()}</p><p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p></div><div style="border-top:2px solid #000; margin-top:10px; padding-top:5px; display:flex; justify-content:space-between; font-size:18px; font-weight:900;"><span>TOTAL</span><span>$${totalGeneral}</span></div><p style="text-align:center; font-size:9px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>`; 
+    t.style.display = 'block'; t.innerHTML = htmlTicket; 
 }
 
 function abrirModalGasto() { if(!cajaActualId) return alert("Abre caja primero"); document.getElementById('gasto-desc').value=''; document.getElementById('gasto-monto').value=''; abrirModal('modal-gasto'); }
@@ -489,16 +468,9 @@ async function guardarGasto() { const d = document.getElementById('gasto-desc').
 
 async function cargarHistoriales() { 
     if(!cajaActualId) return; 
-    const resV = await fetch(`/historial-ventas/${cajaActualId}`, {headers:authH()}); 
-    const resG = await fetch(`/historial-gastos/${cajaActualId}`, {headers:authH()}); 
-    const vts = await resV.json(); 
-    const gst = await resG.json(); 
-    
-    document.getElementById('tabla-ventas').innerHTML = vts.slice(0,5).map(v => {
-        let badgeMovil = v.codigo_retiro ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-[9px] ml-2 font-black border border-blue-200 shadow-sm whitespace-nowrap">📱 MÓVIL (${v.codigo_retiro})</span>` : '';
-        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm text-xs"><div class="flex items-center flex-wrap gap-1"><b>$${v.total}</b> ${badgeMovil}</div><span class="text-slate-400 font-bold shrink-0">${v.metodoPago}</span></div>`;
-    }).join('') || '<p class="text-xs text-slate-400 italic">No hay ventas en este turno.</p>'; 
-    
+    const resV = await fetch(`/historial-ventas/${cajaActualId}`, {headers:authH()}); const resG = await fetch(`/historial-gastos/${cajaActualId}`, {headers:authH()}); 
+    const vts = await resV.json(); const gst = await resG.json(); 
+    document.getElementById('tabla-ventas').innerHTML = vts.slice(0,5).map(v => { let badgeMovil = v.codigo_retiro ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-[9px] ml-2 font-black border border-blue-200 shadow-sm whitespace-nowrap">📱 MÓVIL (${v.codigo_retiro})</span>` : ''; return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm text-xs"><div class="flex items-center flex-wrap gap-1"><b>$${v.total}</b> ${badgeMovil}</div><span class="text-slate-400 font-bold shrink-0">${v.metodoPago}</span></div>`; }).join('') || '<p class="text-xs text-slate-400 italic">No hay ventas en este turno.</p>'; 
     document.getElementById('tabla-gastos').innerHTML = gst.slice(0,5).map(g => `<div class="flex justify-between p-3 bg-rose-50 rounded-xl border border-rose-100 shadow-sm text-rose-900 text-xs"><b>$${g.monto}</b><span>${g.descripcion}</span></div>`).join('') || '<p class="text-xs text-slate-400 italic">No hay gastos registrados.</p>'; 
 }
 
@@ -506,35 +478,18 @@ async function verCierreCaja() {
     const res = await fetch(`/resumen-caja/${cajaActualId}`, {headers:authH()}); const data = await res.json(); 
     let totalEfectivo = 0; let totalTransferencia = 0;
     data.ventas.forEach(v => { if(v.metodo === 'Efectivo') totalEfectivo += v.total; if(v.metodo === 'Transferencia') totalTransferencia += v.total; }); 
-    const apertura = data.apertura || 0; const gastos = data.gastos || 0;
-    const efectivoEnCaja = (apertura + totalEfectivo) - gastos;
-    const totalFacturado = totalEfectivo + totalTransferencia;
-
+    const apertura = data.apertura || 0; const gastos = data.gastos || 0; const efectivoEnCaja = (apertura + totalEfectivo) - gastos; const totalFacturado = totalEfectivo + totalTransferencia;
     ticketCierreDatos = { apertura, totalEfectivo, gastos, efectivoEnCaja, totalTransferencia, totalFacturado };
 
-    document.getElementById('detalle-cierre').innerHTML = `
-        <h3 class="font-black text-center mb-6 text-2xl text-slate-800 tracking-tight">Cierre de Turno</h3>
-        <div class="space-y-3 mb-4 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200">
-            <div class="flex justify-between items-center text-xs md:text-sm font-bold text-slate-500 pb-2 border-b border-slate-200"><span>Fondo Inicial de Caja</span><span>$${apertura}</span></div>
-            <div class="flex justify-between items-center text-xs md:text-sm font-black text-blue-600"><span>+ Ventas Efectivo</span><span>$${totalEfectivo}</span></div>
-            <div class="flex justify-between items-center text-xs md:text-sm font-black text-rose-500 pb-2 border-b border-slate-200"><span>- Gastos / Retiros</span><span>-$${gastos}</span></div>
-            <div class="flex justify-between items-center text-lg md:text-xl font-black text-emerald-600 pt-2"><span>EFECTIVO EN CAJÓN</span><span>$${efectivoEnCaja}</span></div>
-        </div>
-        <div class="space-y-2 mb-6 bg-slate-100 p-4 rounded-xl border border-slate-200">
-            <div class="flex justify-between items-center text-[10px] md:text-xs font-bold text-slate-500"><span>Ventas por Transferencia</span><span>$${totalTransferencia}</span></div>
-            <div class="flex justify-between items-center text-sm font-black text-slate-800 pt-2 border-t border-slate-300"><span>TOTAL FACTURADO</span><span>$${totalFacturado}</span></div>
-        </div>
-    `; 
+    document.getElementById('detalle-cierre').innerHTML = `<h3 class="font-black text-center mb-6 text-2xl text-slate-800 tracking-tight">Cierre de Turno</h3><div class="space-y-3 mb-4 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200"><div class="flex justify-between items-center text-xs md:text-sm font-bold text-slate-500 pb-2 border-b border-slate-200"><span>Fondo Inicial de Caja</span><span>$${apertura}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-blue-600"><span>+ Ventas Efectivo</span><span>$${totalEfectivo}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-rose-500 pb-2 border-b border-slate-200"><span>- Gastos / Retiros</span><span>-$${gastos}</span></div><div class="flex justify-between items-center text-lg md:text-xl font-black text-emerald-600 pt-2"><span>EFECTIVO EN CAJÓN</span><span>$${efectivoEnCaja}</span></div></div><div class="space-y-2 mb-6 bg-slate-100 p-4 rounded-xl border border-slate-200"><div class="flex justify-between items-center text-[10px] md:text-xs font-bold text-slate-500"><span>Ventas por Transferencia</span><span>$${totalTransferencia}</span></div><div class="flex justify-between items-center text-sm font-black text-slate-800 pt-2 border-t border-slate-300"><span>TOTAL FACTURADO</span><span>$${totalFacturado}</span></div></div>`; 
     document.getElementById('botones-cierre-modal').innerHTML = `<div class="flex gap-2"><button onclick="cerrarModalGenerico('modal-cierre')" class="flex-1 bg-slate-200 text-slate-600 py-3 md:py-4 rounded-xl font-black hover:bg-slate-300 transition-colors text-sm md:text-base">Volver</button><button onclick="ejecutarCierreDefinitivo()" class="flex-[2] bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg hover:bg-rose-600 transition-colors text-sm md:text-base">🔒 CERRAR TURNO</button></div>`;
     abrirModal('modal-cierre'); 
 }
 
 async function ejecutarCierreDefinitivo() {
     if(confirm("⚠️ ¿Estás seguro de CERRAR EL TURNO? Ya no podrás registrar más ventas ni gastos.")) {
-        const res = await fetch(`/cerrar-caja/${cajaActualId}`, { method: 'PUT', headers:authH() });
-        const data = await res.json();
-        if(data.success) { imprimirCierreTicket(); setTimeout(() => { window.location.reload(); }, 1000); } 
-        else { alert("Error al cerrar la caja."); }
+        const res = await fetch(`/cerrar-caja/${cajaActualId}`, { method: 'PUT', headers:authH() }); const data = await res.json();
+        if(data.success) { imprimirCierreTicket(); setTimeout(() => { window.location.reload(); }, 1000); } else { alert("Error al cerrar la caja."); }
     }
 }
 
