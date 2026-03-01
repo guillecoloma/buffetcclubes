@@ -294,5 +294,27 @@
     <div id="cartel-impresion" style="display: none;"></div>
 
     <script src="app.js"></script>
+	<script>
+        // 1. Bloquear Clic Derecho
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+        // 2. Bloquear atajos de teclado para desarrolladores
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) e.preventDefault();
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's')) e.preventDefault();
+        });
+
+        // 3. Detectar consola abierta
+        let consoleAbierta = false;
+        const element = new Image();
+        Object.defineProperty(element, 'id', {
+            get: function () {
+                consoleAbierta = true;
+                document.body.innerHTML = '<div style="background-color:#0f172a; height:100vh; width:100vw; display:flex; align-items:center; justify-content:center; flex-direction:column; font-family:sans-serif;"><h1 style="color:#f43f5e; font-size:3rem;">⚠️ ACCESO DENEGADO</h1><p style="color:#cbd5e1; font-size:1.2rem;">Se ha detectado actividad inusual en el navegador.</p></div>';
+            }
+        });
+        setInterval(function() { consoleAbierta = false; console.log(element); console.clear(); }, 1000);
+    </script>
 </body>
 </html>
