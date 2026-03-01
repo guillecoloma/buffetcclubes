@@ -105,8 +105,32 @@
                 </div>
             </div>
             
-            <div class="w-full lg:w-1/2 glass-panel p-2 rounded-[32px] border border-slate-700 shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=2070&auto=format&fit=crop" alt="Voluntarios Subcomision" class="rounded-[24px] object-cover h-[500px] w-full opacity-80">
+            <div class="w-full lg:w-1/2 glass-panel p-2 rounded-[32px] border border-slate-700 shadow-2xl relative overflow-hidden h-[500px]">
+                <div id="sport-carousel" class="flex transition-transform duration-700 ease-in-out h-full" style="width: 500%; transform: translateX(0%);">
+                    
+                    <div class="w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2070&auto=format&fit=crop" alt="Fútbol" class="rounded-[24px] object-cover h-full w-full opacity-80">
+                    </div>
+                    
+                    <div class="w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=2070&auto=format&fit=crop" alt="Baloncesto" class="rounded-[24px] object-cover h-full w-full opacity-80">
+                    </div>
+                    
+                    <div class="w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1593787406536-3676a152d9cb?q=80&w=2070&auto=format&fit=crop" alt="Voleibol" class="rounded-[24px] object-cover h-full w-full opacity-80">
+                    </div>
+                    
+                    <div class="w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1549488344-c672314fa1ac?q=80&w=2070&auto=format&fit=crop" alt="Patinaje" class="rounded-[24px] object-cover h-full w-full opacity-80">
+                    </div>
+                    
+                    <div class="w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1519315901367-f34ff9154487?q=80&w=2070&auto=format&fit=crop" alt="Natación" class="rounded-[24px] object-cover h-full w-full opacity-80">
+                    </div>
+                </div>
+
+                <button id="carousel-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-slate-900/50 p-2 rounded-full text-white/70 hover:text-white hover:bg-slate-900 z-10 onclick="stopInterval()">&#10094;</button>
+                <button id="carousel-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-900/50 p-2 rounded-full text-white/70 hover:text-white hover:bg-slate-900 z-10 onclick="stopInterval()">&#10095;</button>
             </div>
         </div>
     </section>
@@ -218,5 +242,63 @@
         <p>© 2026 SaaS POS Deportes. Todos los derechos reservados.</p>
     </footer>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const carousel = document.getElementById('sport-carousel');
+            const prevBtn = document.getElementById('carousel-prev');
+            const nextBtn = document.getElementById('carousel-next');
+            const totalSlides = 5;
+            let currentIndex = 0;
+            let carouselInterval;
+
+            // Función para actualizar la posición del carrusel
+            function updateCarousel() {
+                carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
+            }
+
+            // Función para avanzar a la siguiente diapositiva
+            function nextSlide() {
+                currentIndex = (currentIndex + 1) % totalSlides;
+                updateCarousel();
+            }
+
+            // Función para retroceder a la diapositiva anterior
+            function prevSlide() {
+                currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+                updateCarousel();
+            }
+
+            // Funciones para manejar la reproducción automática
+            function startInterval() {
+                // Cambia de foto cada 3.5 segundos
+                carouselInterval = setInterval(nextSlide, 3500); 
+            }
+
+            function stopInterval() {
+                clearInterval(carouselInterval);
+            }
+
+            // Event Listeners para navegación manual
+            nextBtn.addEventListener('click', () => {
+                stopInterval();
+                nextSlide();
+                startInterval(); // Reinicia el interval
+            });
+
+            prevBtn.addEventListener('click', () => {
+                stopInterval();
+                prevSlide();
+                startInterval(); // Reinicia el interval
+            });
+
+            // Iniciar la reproducción automática
+            startInterval();
+
+            // Detener la reproducción automática si el usuario pasa el mouse por encima (opcional)
+            const carouselContainer = carousel.closest('.glass-panel');
+            carouselContainer.addEventListener('mouseenter', stopInterval);
+            carouselContainer.addEventListener('mouseleave', startInterval);
+        });
+    </script>
 </body>
 </html>
