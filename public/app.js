@@ -12,7 +12,6 @@ let totalCarritoValor = 0;
 let idProductoEditar = null; 
 let ticketCierreDatos = {};
 let qrcodeGenerador = null; 
-let qrcodeBuzon = null;
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -98,6 +97,9 @@ function verPOS() {
     if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
 }
 
+// =========================================================
+// DASHBOARD MULTICUENTAS Y MODO AUDITORÍA PARA DUEÑOS
+// =========================================================
 async function verDashboardSport(overrideDeporteId = null, overrideNombre = null) {
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
@@ -140,7 +142,6 @@ async function verDashboardSport(overrideDeporteId = null, overrideNombre = null
             ? `<div class="mb-8 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter">Auditoría: ${targetNombre}</h2><button onclick="${onClickVolver}" class="text-blue-600 hover:bg-blue-100 bg-blue-50 px-4 py-2 rounded-xl font-black flex items-center gap-2 transition-colors mt-2 shadow-sm border border-blue-200">⬅ Volver al Resumen del Club</button></div><div class="text-left md:text-right bg-slate-900 p-4 rounded-2xl shadow-lg"><span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Patrimonio Auditado</span><span class="text-3xl md:text-4xl font-black text-white">$${stats.total}</span></div></div>`
             : `<div class="mb-8 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter">Patrimonio: $${stats.total}</h2><div class="mt-2 text-slate-500 font-bold">Balance multicuentas de la subcomisión</div></div><button onclick="verDashboardSport()" class="bg-white text-slate-600 px-6 py-3 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-all">🔄 Actualizar</button></div>`;
 
-        // EL BOTÓN DEL BUZÓN LO VE EL SPORTADMIN
         let botonesAccionHTML = !isAuditor
             ? `<div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
                     <button onclick="abrirBuzonSugerencias()" class="shrink-0 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-purple-200">💬 Buzón</button>
@@ -207,11 +208,12 @@ async function cargarDashboard(clubIdToView = null) {
 // =========================================================
 async function abrirBuzonSugerencias() {
     const contenedorQR = document.getElementById('qr-buzon-container');
-    contenedorQR.innerHTML = '';
+    contenedorQR.innerHTML = ''; // Limpiamos si había uno antes
     
-    // Generar URL pública para este deporte específico
+    // Generar URL pública para este deporte
     const urlPublica = `${window.location.origin}/feedback.html?deporte=${usuarioActual.deporte_id}`;
     
+    // Dibujamos el QR
     new QRCode(contenedorQR, {
         text: urlPublica,
         width: 150,
@@ -221,8 +223,6 @@ async function abrirBuzonSugerencias() {
         correctLevel : QRCode.CorrectLevel.H
     });
 
-    document.getElementById('link-buzon').href = urlPublica;
-    
     await cargarComentariosBuzon();
     abrirModal('modal-buzon');
 }
