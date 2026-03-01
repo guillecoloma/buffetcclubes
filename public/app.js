@@ -113,7 +113,8 @@ async function verDashboardSport(overrideDeporteId = null, overrideNombre = null
     document.getElementById('panel-despacho').classList.add('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('panel-dashboard').classList.remove('hidden');
-    const divContenido = document.getElementById('contenido-dashboard'); divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas y billeteras...</p>';
+    const divContenido = document.getElementById('contenido-dashboard');
+    divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas y billeteras...</p>';
     const targetDeporteId = overrideDeporteId || usuarioActual.deporte_id;
     const targetNombre = overrideNombre || 'Tesorería General';
     const isAuditor = overrideDeporteId !== null;
@@ -366,7 +367,7 @@ function setMetodo(m) {
     gestionarCalculadoraVuelto(); document.getElementById('buscador').focus(); 
 }
 
-// ATAJOS DE TECLADO (F1, F2, ESPACIO Y ENTER)
+// ATAJOS DE TECLADO MEJORADOS PARA TRANSFERENCIA Y EFECTIVO
 document.addEventListener('keydown', function(e) { 
     const modales = ['modal-apertura', 'modal-clubes', 'modal-deportes', 'modal-usuarios', 'modal-producto', 'modal-gasto', 'modal-cierre', 'modal-movimiento', 'modal-qr', 'modal-buzon']; 
     const algunModalAbierto = modales.some(id => document.getElementById(id) && document.getElementById(id).classList.contains('flex')); 
@@ -374,14 +375,27 @@ document.addEventListener('keydown', function(e) {
 
     if (e.key === 'F1') { e.preventDefault(); setMetodo('Efectivo'); } 
     if (e.key === 'F2') { e.preventDefault(); setMetodo('Transferencia'); } 
-    if (e.key === 'Escape') { e.preventDefault(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); document.getElementById('buscador').focus(); } 
+    if (e.key === 'Escape') { 
+        e.preventDefault(); 
+        carrito = []; 
+        document.getElementById('input-paga-con').value = ''; 
+        document.getElementById('buscador').value = ''; // Limpiamos el buscador por si acaso
+        actualizarCarrito(); 
+        aplicarFiltros();
+        document.getElementById('buscador').focus(); 
+    } 
     
-    // BARRA ESPACIADORA = PAGO EXACTO
+    // ESPACIO = PAGO EXACTO / COBRO RÁPIDO
     if (e.code === 'Space') { 
         if(document.activeElement.tagName !== 'INPUT') { 
             e.preventDefault(); 
             pagoExacto(); 
-        } 
+        } else if (document.activeElement.id === 'buscador' && document.activeElement.value === '') {
+            // TRUCO: Si el cursor está en el buscador pero NO hay nada escrito, 
+            // asumimos que el cajero quiere cobrar rápido la transferencia
+            e.preventDefault();
+            pagoExacto();
+        }
     }
 
     if (e.key === 'Enter') { 
@@ -427,13 +441,13 @@ async function confirmarVenta() {
 function limpiarVentaExitosa(vuelto, metodo) { 
     carrito = []; 
     document.getElementById('input-paga-con').value = ''; 
+    document.getElementById('buscador').value = ''; // ¡ESTO EVITA QUE LOS PRODUCTOS DESAPAREZCAN!
     actualizarCarrito(); 
     cargarProductos(); 
     document.getElementById('ticket-impresion').style.display = 'none'; 
     document.getElementById('buscador').focus(); 
     document.getElementById('btn-confirmar').innerHTML = `CONFIRMAR`; 
     
-    // Disparar cartel gigante si corresponde
     if(metodo === 'Efectivo' && vuelto > 0) {
         mostrarBannerVueltoGigante(vuelto);
     }
@@ -510,4 +524,5 @@ async function ejecutarCierreDefinitivo() {
 }
 
 function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Gastos/Retiros:</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
+
 function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
