@@ -11,6 +11,7 @@ let categoriaActiva = 'TODOS';
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
 let ticketCierreDatos = {};
+let qrcodeGenerador = null; 
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -52,7 +53,9 @@ function configurarInterfazPorRol() {
     document.getElementById('panel-dashboard').classList.add('hidden');
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
-    ['btn-clubes', 'btn-deportes', 'btn-usuarios', 'btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-dash-sport', 'btn-pos-sport', 'btn-despacho'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    
+    // Agregamos el btn-backup a la lista de ocultos por defecto
+    ['btn-backup', 'btn-clubes', 'btn-deportes', 'btn-usuarios', 'btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-dash-sport', 'btn-pos-sport', 'btn-despacho'].forEach(id => document.getElementById(id).classList.add('hidden'));
     
     document.getElementById('header-rol').innerText = usuarioActual.rol;
     document.getElementById('label-usuario-caja').innerText = usuarioActual.nombre;
@@ -60,7 +63,10 @@ function configurarInterfazPorRol() {
     if (usuarioActual.rol === 'SYSADMIN') {
         document.getElementById('header-entidad-nombre').innerText = "SaaS Central";
         document.getElementById('main-header').classList.replace('header-gradient-club', 'header-gradient');
-        ['btn-clubes', 'btn-deportes', 'btn-usuarios'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+        
+        // MOSTRAR BOTÓN DE BACKUP SOLO AL DUEÑO
+        ['btn-backup', 'btn-clubes', 'btn-deportes', 'btn-usuarios'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+        
         document.getElementById('panel-dashboard').classList.remove('hidden');
         cargarDashboard('HOME');
     } 
@@ -87,6 +93,29 @@ function configurarInterfazPorRol() {
 }
 
 function cerrarSesion() { tokenGlobal = null; sessionStorage.clear(); window.location.reload(); }
+
+// =========================================================
+// 💾 FUNCIÓN DE DESCARGA DE BACKUP SEGURO
+// =========================================================
+async function descargarBackup() {
+    try {
+        const res = await fetch('/api/backup', { headers: authH() });
+        if (!res.ok) throw new Error("No autorizado o error de servidor");
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        const fecha = new Date().toISOString().split('T')[0];
+        a.download = `buffet_backup_${fecha}.db`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (e) {
+        alert("Error al descargar el backup: " + e.message);
+    }
+}
 
 function verPOS() {
     document.getElementById('panel-dashboard').classList.add('hidden');
@@ -199,66 +228,41 @@ async function cargarDashboard(clubIdToView = null) {
     } catch (e) {}
 }
 
-// =========================================================
-// MÓDULO: BUZÓN DE SUGERENCIAS Y QR (IMPRESIÓN A4 ESTRICTA)
-// =========================================================
 async function abrirBuzonSugerencias() {
     const contenedorQR = document.getElementById('qr-buzon-container');
     contenedorQR.innerHTML = ''; 
     const urlPublica = `${window.location.origin}/feedback.html?deporte=${usuarioActual.deporte_id}`;
     
-    new QRCode(contenedorQR, {
-        text: urlPublica,
-        width: 150,
-        height: 150,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-    });
-
+    new QRCode(contenedorQR, { text: urlPublica, width: 150, height: 150, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
     await cargarComentariosBuzon();
     abrirModal('modal-buzon');
 }
 
-// LÓGICA REFINADA PARA QUE OCUPE SÓLO 1 HOJA A4
 function imprimirCartelBuzon() {
     const canvas = document.querySelector('#qr-buzon-container canvas');
-    if (!canvas) {
-        alert("Aguarde un segundo a que se genere el código QR.");
-        return;
-    }
+    if (!canvas) { alert("Aguarde un segundo a que se genere el código QR."); return; }
     
     const qrDataUrl = canvas.toDataURL("image/png");
     const cartel = document.getElementById('cartel-impresion');
     
-    // Contenedor súper medido para no rebasar el 100vh
     cartel.innerHTML = `
         <div style="text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; width: 100%; max-width: 800px; padding: 20px; box-sizing: border-box;">
             <h1 style="font-size: 40px; font-weight: 900; margin: 0 0 5px 0; color: #0f172a;">${usuarioActual.club_nombre}</h1>
             <h2 style="font-size: 22px; color: #4f46e5; margin: 0 0 30px 0; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2>
-            
             <div style="font-size: 70px; margin-bottom: 0;">📥</div>
             <h1 style="font-size: 50px; font-weight: 900; margin: 0 0 15px 0; color: #1e293b;">Buzón de Sugerencias</h1>
-            
             <p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">
                 Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.
             </p>
-            
             <div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;">
                 <img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" />
             </div>
-            
             <p style="font-size: 16px; font-weight: bold; color: #94a3b8; margin: 0;">¡Gracias por ser parte de nuestra comunidad!</p>
         </div>
     `;
 
     document.body.classList.add('printing-poster');
-    
-    setTimeout(() => {
-        window.print();
-        document.body.classList.remove('printing-poster');
-        cartel.innerHTML = ''; 
-    }, 300);
+    setTimeout(() => { window.print(); document.body.classList.remove('printing-poster'); cartel.innerHTML = ''; }, 300);
 }
 
 async function cargarComentariosBuzon() {
@@ -267,12 +271,7 @@ async function cargarComentariosBuzon() {
     try {
         const res = await fetch(`/comentarios/${usuarioActual.deporte_id}`, { headers: authH() });
         const msjs = await res.json();
-        
-        if(msjs.length === 0) {
-            lista.innerHTML = '<div class="text-center py-10 opacity-50"><span class="text-4xl block mb-2">📭</span><p class="font-bold text-slate-500">Buzón vacío</p></div>';
-            return;
-        }
-
+        if(msjs.length === 0) { lista.innerHTML = '<div class="text-center py-10 opacity-50"><span class="text-4xl block mb-2">📭</span><p class="font-bold text-slate-500">Buzón vacío</p></div>'; return; }
         lista.innerHTML = msjs.map(m => `
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 relative group">
                 <button onclick="eliminarComentario(${m.id})" class="absolute top-2 right-2 text-rose-300 hover:text-rose-600 font-black px-2 hidden group-hover:block transition-colors">X</button>
@@ -286,16 +285,8 @@ async function cargarComentariosBuzon() {
     } catch (e) { lista.innerHTML = '<p class="text-rose-500 text-sm">Error de conexión.</p>'; }
 }
 
-async function eliminarComentario(id) {
-    if(confirm("¿Borrar este mensaje permanentemente?")) {
-        await fetch(`/comentarios/${id}`, { method: 'DELETE', headers: authH() });
-        cargarComentariosBuzon();
-    }
-}
+async function eliminarComentario(id) { if(confirm("¿Borrar este mensaje permanentemente?")) { await fetch(`/comentarios/${id}`, { method: 'DELETE', headers: authH() }); cargarComentariosBuzon(); } }
 
-// =========================================================
-// CRUD MAESTRO (CLUBES, DEPORTES, USUARIOS)
-// =========================================================
 function abrirModal(id) { document.getElementById(id).classList.replace('hidden', 'flex'); }
 function cerrarModalGenerico(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
 
@@ -438,3 +429,4 @@ async function ejecutarCierreDefinitivo() {
 }
 
 function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Gastos/Retiros:</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
+function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }

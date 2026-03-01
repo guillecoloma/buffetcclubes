@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const compression = require('compression'); 
 const rateLimit = require('express-rate-limit'); 
+const path = require('path'); // Añadido para manejar rutas de archivos
 
 const app = express();
 app.use(compression());
@@ -15,14 +16,14 @@ app.use(express.static('public'));
 app.use(express.json()); 
 
 const JWT_SECRET = process.env.JWT_SECRET || 'SuperFirmaSecretaBuffet2024';
+const DB_PATH = process.env.DB_PATH || './buffet.db'; // Lo sacamos afuera para usarlo en el backup
 let db;
 
 (async () => {
     try {
-        const dbPath = process.env.DB_PATH || './buffet.db';
-        db = await open({ filename: dbPath, driver: sqlite3.Database });
+        db = await open({ filename: DB_PATH, driver: sqlite3.Database });
 
-        console.log(`🛠️ Conectado a la Base de Datos en: ${dbPath}`);
+        console.log(`🛠️ Conectado a la Base de Datos en: ${DB_PATH}`);
 
         await db.exec(`
             CREATE TABLE IF NOT EXISTS clubes (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT UNIQUE, logo TEXT, estado TEXT DEFAULT 'ACTIVO');
@@ -34,8 +35,6 @@ let db;
             CREATE TABLE IF NOT EXISTS gastos (id INTEGER PRIMARY KEY AUTOINCREMENT, caja_id INTEGER, club_id INTEGER, deporte_id INTEGER, descripcion TEXT, monto REAL, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
             CREATE TABLE IF NOT EXISTS movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, club_id INTEGER, deporte_id INTEGER, tipo TEXT, concepto TEXT, monto REAL, cuenta_origen TEXT DEFAULT 'EFECTIVO', cuenta_destino TEXT, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
             CREATE TABLE IF NOT EXISTS ventas_detalles (id INTEGER PRIMARY KEY AUTOINCREMENT, venta_id INTEGER, producto_nombre TEXT, cantidad INTEGER);
-            
-            -- NUEVA TABLA PARA EL BUZÓN DE COMENTARIOS
             CREATE TABLE IF NOT EXISTS comentarios (id INTEGER PRIMARY KEY AUTOINCREMENT, deporte_id INTEGER, autor TEXT, mensaje TEXT, fecha DATETIME DEFAULT (datetime('now', 'localtime')));
         `);
 
@@ -57,7 +56,7 @@ let db;
             await db.run('INSERT OR IGNORE INTO deportes (id, nombre, club_id) VALUES (1, "ADMINISTRACIÓN", 1)');
         }
 
-        console.log("✅ Servidor iniciado. 🛡️ Módulo Buzón de Sugerencias Activo.");
+        console.log("✅ Servidor iniciado. 🛡️ Módulo de Backup Integrado.");
     } catch (error) { console.error("❌ Error crítico:", error); }
 })();
 
@@ -73,8 +72,19 @@ const verificarToken = (req, res, next) => {
 };
 
 // =======================================================
-// 🌐 RUTAS PÚBLICAS (PARA EL BUZÓN DEL CLIENTE/FAMILIA)
+// 💾 RUTA DE BACKUP (SOLO PARA DUEÑO DEL SISTEMA)
 // =======================================================
+app.get('/api/backup', verificarToken, (req, res) => {
+    // Seguridad extrema: Solo el SYSADMIN puede descargar el archivo
+    if (req.usuarioVerificado.rol !== 'SYSADMIN') {
+        return res.status(403).json({ success: false, mensaje: "No tienes permisos para descargar la base de datos." });
+    }
+    const file = path.resolve(__dirname, DB_PATH);
+    res.download(file, `buffet_backup_${new Date().toISOString().split('T')[0]}.db`, (err) => {
+        if (err) { console.error("Error enviando backup:", err); res.status(500).send("Error al generar backup"); }
+    });
+});
+
 app.get('/public/info-deporte/:id', async (req, res) => {
     try {
         const info = await db.get('SELECT d.nombre as deporte, c.nombre as club, d.imagen as logo FROM deportes d JOIN clubes c ON d.club_id = c.id WHERE d.id = ?', [req.params.id]);
@@ -91,9 +101,6 @@ app.post('/public/comentarios', async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
-// =======================================================
-// 🔒 RUTAS PRIVADAS (PARA EL ADMIN DEL CLUB)
-// =======================================================
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -111,9 +118,8 @@ app.post('/login', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, mensaje: "Error interno" }); }
 });
 
-// GESTIÓN CLUBES Y DEPORTES
 app.get('/clubes', verificarToken, async (req, res) => { try { res.json(await db.all('SELECT * FROM clubes WHERE id != 1')); } catch (e) { res.status(500).json({ error: e.message }); } });
-app.post('/clubes', verificarToken, async (req, res) => { try { await db.run('INSERT INTO clubes (nombre, logo) VALUES (?, ?)', [req.body.nombre.toUpperCase(), req.body.logo]); res.json({ success: true }); } catch (e) { res.json({ success: false, mensaje: "Error al crear club" }); } });
+app.post('/clubes', verificarToken, async (req, res) => { try { await db.run('INSERT INTO clubes (nombre, logo) VALUES (?, ?)', [req.body.nombre.toUpperCase(), req.body.logo]); res.json({ success: true }); } catch (e) { res.json({ success: false, mensaje: "Error al crear club. ¿Nombre duplicado?" }); } });
 app.get('/estadisticas-sysadmin', verificarToken, async (req, res) => { try { const stats = await db.all(`SELECT c.id, c.nombre, c.logo, COALESCE((SELECT SUM(total) FROM ventas WHERE club_id = c.id), 0) as total_ventas, COALESCE((SELECT SUM(monto) FROM gastos WHERE club_id = c.id), 0) as total_gastos FROM clubes c WHERE c.id != 1`); res.json(stats); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.get('/estadisticas-club/:clubId', verificarToken, async (req, res) => { try { const stats = await db.all(`SELECT d.id, d.nombre, d.imagen as logo, COALESCE((SELECT SUM(total) FROM ventas WHERE deporte_id = d.id), 0) as total_ventas, COALESCE((SELECT SUM(monto) FROM gastos WHERE deporte_id = d.id), 0) as total_gastos FROM deportes d WHERE d.club_id = ? AND d.id != 1`, [req.params.clubId]); res.json(stats); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.get('/deportes', verificarToken, async (req, res) => { try { res.json(await db.all(`SELECT d.*, c.nombre as club_nombre FROM deportes d LEFT JOIN clubes c ON d.club_id = c.id WHERE d.id != 1`)); } catch (e) { res.status(500).json({ error: e.message }); } });
@@ -121,7 +127,6 @@ app.get('/deportes/:clubId', verificarToken, async (req, res) => { try { res.jso
 app.post('/deportes', verificarToken, async (req, res) => { try { await db.run('INSERT INTO deportes (nombre, imagen, club_id) VALUES (?, ?, ?)', [req.body.nombre.toUpperCase(), req.body.imagen, req.body.club_id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.put('/deportes/:id/estado', verificarToken, async (req, res) => { try { await db.run('UPDATE deportes SET estado = ? WHERE id = ?', [req.body.estado, req.params.id]); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
 
-// ESTADÍSTICAS AVANZADAS: MULTICUENTAS
 app.get('/estadisticas-subcomision/:deporteId', verificarToken, async (req, res) => { 
     try { 
         const id = req.params.deporteId;
@@ -145,12 +150,10 @@ app.get('/estadisticas-subcomision/:deporteId', verificarToken, async (req, res)
 
 app.get('/cajas-subcomision/:deporteId', verificarToken, async (req, res) => { try { const cajas = await db.all(`SELECT c.*, u.nombre as cajero_nombre, COALESCE((SELECT SUM(total) FROM ventas WHERE caja_id = c.id), 0) as total_ingresos, COALESCE((SELECT SUM(monto) FROM gastos WHERE caja_id = c.id), 0) as total_gastos FROM cajas c LEFT JOIN usuarios u ON c.usuario_id = u.id WHERE c.deporte_id = ? ORDER BY c.id DESC LIMIT 30`, [req.params.deporteId]); res.json(cajas); } catch (e) { res.status(500).json({ error: e.message }); } });
 
-// RUTAS DE LIBRO MAYOR Y COMENTARIOS
 app.get('/movimientos/:deporteId', verificarToken, async (req, res) => { try { res.json(await db.all('SELECT * FROM movimientos WHERE deporte_id = ? ORDER BY id DESC', [req.params.deporteId])); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.post('/movimientos', verificarToken, async (req, res) => { try { await db.run('INSERT INTO movimientos (club_id, deporte_id, tipo, concepto, monto, cuenta_origen, cuenta_destino) VALUES (?, ?, ?, ?, ?, ?, ?)', [req.body.club_id, req.body.deporte_id, req.body.tipo, req.body.concepto, req.body.monto, req.body.cuenta_origen, req.body.cuenta_destino]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.delete('/movimientos/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM movimientos WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
-// VER COMENTARIOS (ADMIN)
 app.get('/comentarios/:deporteId', verificarToken, async (req, res) => { try { res.json(await db.all('SELECT * FROM comentarios WHERE deporte_id = ? ORDER BY id DESC', [req.params.deporteId])); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.delete('/comentarios/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM comentarios WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
@@ -167,7 +170,6 @@ app.post('/productos', verificarToken, async (req, res) => { try { await db.run(
 app.put('/productos/:id', verificarToken, async (req, res) => { try { await db.run('UPDATE productos SET nombre = ?, precio = ?, stock = ?, imagen = ?, categoria = ? WHERE id = ?', [req.body.nombre, req.body.precio, req.body.stock, req.body.imagen, req.body.categoria, req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.delete('/productos/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM productos WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
-// VENTAS
 app.post('/confirmar-venta', verificarToken, async (req, res) => {
     const { items, metodoPago, caja_id, club_id, deporte_id, requiere_despacho } = req.body;
     try {

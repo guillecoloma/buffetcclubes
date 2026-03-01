@@ -23,40 +23,17 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* DOBLE MOTOR DE IMPRESIÓN CORREGIDO (TICKET vs CARTEL) */
         @media print {
             @page { margin: 0; } 
             .no-print { display: none !important; }
-            
-            /* --- MOTOR TICKET 80mm --- */
             body:not(.printing-poster) { background: white !important; margin: 0; padding: 0; overflow: visible !important; height: auto !important; }
             body:not(.printing-poster) #ticket-impresion { display: block !important; width: 76mm !important; margin: 0; padding: 0 2mm 10mm 2mm; font-family: 'Courier New', Courier, monospace !important; color: #000 !important; font-size: 13px !important; font-weight: bold !important; -webkit-font-smoothing: none !important; font-smooth: never !important; }
             body:not(.printing-poster) .ticket-section { border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
             body:not(.printing-poster) .ticket-title { font-size: 16px; font-weight: 900; text-align: center; margin: 0 0 10px 0; text-transform: uppercase; }
             body:not(.printing-poster) .ticket-item { display: flex; justify-content: space-between; margin-bottom: 4px; }
             body:not(.printing-poster) .cut-line { text-align: center; font-size: 10px; padding: 10px 0; font-weight: bold; }
-            
-            /* --- MOTOR CARTEL A4 (BUZÓN - ESTRICTAMENTE 1 HOJA) --- */
-            body.printing-poster { 
-                background: white !important; 
-                margin: 0 !important; 
-                padding: 0 !important; 
-                width: 100vw !important; 
-                height: 100vh !important; 
-                overflow: hidden !important; 
-            }
-            body.printing-poster #cartel-impresion { 
-                display: flex !important; 
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                width: 100% !important; 
-                height: 100% !important; 
-                margin: 0; 
-                padding: 0; 
-                background: white; 
-                box-sizing: border-box;
-            }
+            body.printing-poster { background: white !important; margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important; }
+            body.printing-poster #cartel-impresion { display: flex !important; flex-direction: column; justify-content: center; align-items: center; width: 100% !important; height: 100% !important; margin: 0; padding: 0; background: white; box-sizing: border-box; }
             body.printing-poster #ticket-impresion { display: none !important; }
         }
     </style>
@@ -98,6 +75,8 @@
         </div>
         
         <div class="flex overflow-x-auto scrollbar-hide w-full md:w-auto gap-2 pb-1 md:pb-0 items-center">
+            <button onclick="descargarBackup()" id="btn-backup" class="shrink-0 hidden bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors border border-slate-500" title="Descargar copia de seguridad">💾 Backup DB</button>
+            
             <button onclick="abrirModalClubes()" id="btn-clubes" class="shrink-0 hidden bg-purple-600 hover:bg-purple-500 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">🏢 Clubes</button>
             <button onclick="abrirModalDeportes()" id="btn-deportes" class="shrink-0 hidden bg-amber-500 hover:bg-amber-400 text-amber-950 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">🏆 Deportes</button>
             <button onclick="verDashboardSport()" id="btn-dash-sport" class="shrink-0 hidden bg-indigo-500 hover:bg-indigo-400 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">📊 Panel</button>
@@ -259,6 +238,7 @@
     <div id="modal-producto" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col text-center"><h2 id="titulo-modal-producto" class="text-xl md:text-2xl font-black mb-4 md:mb-6 text-slate-800">Gestión de Productos</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 flex-1 overflow-hidden"><div class="space-y-3 md:space-y-4 bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 text-left overflow-y-auto shadow-inner relative"><input type="text" id="prod-nombre" placeholder="Nombre (Ej: Hamburguesa)" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base"><div class="grid grid-cols-2 gap-2 md:gap-4"><input type="number" inputmode="numeric" id="prod-precio" placeholder="Precio ($)" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base"><input type="number" inputmode="numeric" id="prod-stock" placeholder="Stock Inicial" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base"></div><input type="text" id="prod-imagen" placeholder="URL de la Imagen (Opcional)" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base"><select id="prod-categoria" class="w-full p-3 md:p-4 border-2 rounded-xl font-black bg-white cursor-pointer text-sm md:text-base"><option value="COMIDA">🍔 COMIDA</option><option value="BEBIDA">🥤 BEBIDA</option><option value="OTROS" selected>🛒 OTROS</option></select><div class="flex gap-2 md:gap-3 mt-4 md:mt-6 pt-3 md:pt-4 border-t border-slate-200"><button id="btn-eliminar-prod" onclick="eliminarProducto()" class="hidden bg-rose-100 text-rose-600 px-4 md:px-5 py-3 md:py-4 rounded-xl font-black hover:bg-rose-200 transition-colors shadow-sm" title="Eliminar Producto">🗑️</button><button onclick="limpiarFormularioProducto()" class="flex-1 bg-white border-2 border-slate-200 text-slate-500 py-3 md:py-4 rounded-xl font-black shadow-sm hover:bg-slate-50 transition-colors text-xs md:text-sm">LIMPIAR</button><button onclick="guardarProducto()" class="flex-[2] bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg hover:bg-blue-600 transition-colors text-xs md:text-sm">GUARDAR</button></div></div><div class="flex flex-col overflow-hidden bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 shadow-inner"><h3 class="font-black text-slate-400 mb-2 md:mb-4 text-left uppercase text-[10px] md:text-xs tracking-widest flex justify-between items-center">Catálogo Actual<span class="text-[8px] md:text-[9px] bg-blue-100 text-blue-600 px-2 py-1 rounded-md">Clic para editar</span></h3><div id="lista-productos-modal" class="flex-1 overflow-y-auto space-y-2 pr-2 text-left"></div></div></div><button onclick="cerrarModalGenerico('modal-producto')" class="mt-4 md:mt-6 text-slate-400 font-bold hover:text-slate-600 transition-colors text-sm">Cerrar Ventana</button></div></div>
     <div id="modal-gasto" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-8 md:p-10 rounded-[32px] md:rounded-[48px] w-full max-w-[400px] text-center shadow-2xl"><div class="w-12 h-12 md:w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4">💸</div><h2 class="text-xl md:text-2xl font-black mb-6 md:mb-8">Retiro de Caja</h2><input type="text" id="gasto-desc" placeholder="Concepto" class="w-full p-3 md:p-4 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-3 md:mb-4 outline-none font-bold text-sm md:text-base"><input type="number" inputmode="numeric" id="gasto-monto" placeholder="Monto ($)" class="w-full p-4 md:p-5 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-6 md:mb-8 outline-none text-2xl md:text-3xl font-black text-rose-500 text-center"><div class="flex gap-3 md:gap-4"><button onclick="cerrarModalGenerico('modal-gasto')" class="flex-1 font-bold text-slate-400 text-sm md:text-base">Cancelar</button><button onclick="guardarGasto()" class="flex-1 bg-rose-500 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-base">REGISTRAR</button></div></div></div>
     <div id="modal-cierre" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] w-full max-w-md shadow-2xl"><div id="detalle-cierre"></div><div id="botones-cierre-modal" class="mt-4 md:mt-6"></div></div></div>
+    
     <div id="modal-movimiento" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[48px] shadow-2xl w-full max-w-sm text-center"><div id="icono-movimiento" class="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4"></div><h2 id="titulo-movimiento" class="text-xl md:text-2xl font-black mb-6 text-slate-800">Registro</h2><input type="hidden" id="movimiento-tipo"><div class="mb-3 text-left"><label class="text-[10px] font-bold text-slate-500 uppercase ml-2 block mb-1">Cuenta Origen</label><select id="movimiento-origen" class="w-full p-3 md:p-4 border-2 bg-slate-50 rounded-xl md:rounded-2xl font-black outline-none focus:border-blue-500 text-sm md:text-base"><option value="EFECTIVO">💵 EFECTIVO (Caja Fuerte)</option><option value="BANCO">🏦 BANCO (Transferencias/CBU)</option><option value="MUTUAL">🏛️ MUTUAL</option></select></div><div id="contenedor-destino" class="mb-3 text-left hidden"><label class="text-[10px] font-bold text-slate-500 uppercase ml-2 block mb-1 text-blue-600">Cuenta Destino</label><select id="movimiento-destino" class="w-full p-3 md:p-4 border-2 bg-blue-50 border-blue-200 rounded-xl md:rounded-2xl font-black outline-none focus:border-blue-500 text-sm md:text-base text-blue-800"><option value="EFECTIVO">💵 EFECTIVO (Caja Fuerte)</option><option value="BANCO">🏦 BANCO (Transferencias/CBU)</option><option value="MUTUAL">🏛️ MUTUAL</option></select></div><input type="text" id="movimiento-concepto" placeholder="Concepto" class="w-full p-3 md:p-4 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-3 md:mb-4 outline-none font-bold focus:border-blue-500 text-sm md:text-base"><input type="number" inputmode="numeric" id="movimiento-monto" placeholder="Monto ($)" class="w-full p-4 md:p-5 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-6 md:mb-8 outline-none text-2xl md:text-3xl font-black text-center focus:border-blue-500"><div class="flex gap-3 md:gap-4"><button onclick="cerrarModalGenerico('modal-movimiento')" class="flex-1 font-bold text-slate-400 hover:text-slate-600 text-sm md:text-base">Cancelar</button><button id="btn-guardar-mov" onclick="guardarMovimiento()" class="flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg text-sm md:text-base">GUARDAR</button></div></div></div>
 
     <div id="ticket-impresion" style="display: none;"></div>
