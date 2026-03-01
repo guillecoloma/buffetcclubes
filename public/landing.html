@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS POS | El Sistema Definitivo para Clubes y Subcomisiones</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: white; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         .text-gradient { background: linear-gradient(to right, #60a5fa, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .hero-glow { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, rgba(0,0,0,0) 70%); top: -200px; left: 50%; transform: translateX(-50%); z-index: -1; pointer-events: none; }
@@ -78,28 +78,21 @@
                 <span class="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full font-bold tracking-widest uppercase text-xs mb-4 inline-block">Para Subcomisiones</span>
                 <h2 class="text-4xl md:text-5xl font-black leading-tight mb-6">Cuentas claras, <br>voluntarios felices.</h2>
                 <p class="text-slate-400 text-lg mb-8 leading-relaxed">
-                    Sabemos el esfuerzo que hacen los padres y delegados para recaudar fondos. No pierdas más tiempo anotando en cuadernos ni discutiendo por faltantes de caja. <b>Ten el control total de tu disciplina, de forma independiente.</b>
+                    Sabemos el esfuerzo que hacen los padres y delegados para recaudar fondos. No pierdas más tiempo anotando en cuadernos ni discutiendo por faltantes de caja. <b>Ten el control total de tu disciplina.</b>
                 </p>
                 <div class="space-y-6">
                     <div class="flex gap-4">
                         <div class="w-12 h-12 shrink-0 bg-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center text-xl font-black">1</div>
                         <div>
                             <h4 class="font-black text-xl mb-1">Cierres de turno perfectos</h4>
-                            <p class="text-slate-400 text-sm">Cambia de cajero (voluntarios) sin miedo. El sistema te dice exactamente cuánto efectivo y cuántas transferencias debe haber al terminar el turno.</p>
+                            <p class="text-slate-400 text-sm">Cambia de cajero sin miedo. El sistema te dice exactamente cuánto efectivo debe haber al terminar.</p>
                         </div>
                     </div>
                     <div class="flex gap-4">
                         <div class="w-12 h-12 shrink-0 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center text-xl font-black">2</div>
                         <div>
                             <h4 class="font-black text-xl mb-1">Tu propio Libro Mayor</h4>
-                            <p class="text-slate-400 text-sm">Registra ingresos extra (ej: cuotas, rifas) y egresos diarios (ej: pago de árbitros, compra de pelotas) sin mezclarlo con la plata de la cantina.</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-4">
-                        <div class="w-12 h-12 shrink-0 bg-orange-500/20 text-orange-400 rounded-xl flex items-center justify-center text-xl font-black">3</div>
-                        <div>
-                            <h4 class="font-black text-xl mb-1">Control de Billeteras</h4>
-                            <p class="text-slate-400 text-sm">Separa visualmente la plata que tienes en Efectivo, en la cuenta del Banco y los ahorros en la Mutual. Transfiere entre ellas con un clic.</p>
+                            <p class="text-slate-400 text-sm">Registra ingresos extra y egresos diarios (ej: pago de árbitros) sin mezclarlo con la cantina.</p>
                         </div>
                     </div>
                 </div>
@@ -107,36 +100,66 @@
             
             <div class="w-full lg:w-1/2 glass-panel p-2 rounded-[32px] border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden h-[500px]">
                 
-                <div id="sport-carousel" class="flex transition-transform duration-700 ease-in-out h-full w-[500%]">
+                <div id="sport-carousel" class="flex transition-transform duration-700 ease-in-out h-full" style="width: 1000%; transform: translateX(0%);">
                     
-                    <div class="w-1/5 h-full relative group">
-                        <img src="https://images.unsplash.com/photo-1518605368461-1ee7e1631f5a?auto=format&fit=crop&w=1000&q=80" alt="Fútbol" class="rounded-[24px] object-cover object-center h-full w-full">
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
+                        <img src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=1000&q=80" alt="Fútbol" class="rounded-[24px] object-cover object-center h-full w-full">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">⚽ Fútbol</h3>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">⚽ Fútbol</h3>
                     </div>
                     
-                    <div class="w-1/5 h-full relative group">
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
                         <img src="https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&w=1000&q=80" alt="Básquet" class="rounded-[24px] object-cover object-center h-full w-full">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏀 Básquet</h3>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏀 Básquet</h3>
                     </div>
                     
-                    <div class="w-1/5 h-full relative group">
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
                         <img src="https://images.unsplash.com/photo-1593787406536-3676a152d9cb?auto=format&fit=crop&w=1000&q=80" alt="Vóley" class="rounded-[24px] object-cover object-center h-full w-full">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏐 Vóley</h3>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏐 Vóley</h3>
                     </div>
                     
-                    <div class="w-1/5 h-full relative group">
-                        <img src="https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?auto=format&fit=crop&w=1000&q=80" alt="Patín" class="rounded-[24px] object-cover object-center h-full w-full">
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
+                        <img src="https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=1000&q=80" alt="Tenis" class="rounded-[24px] object-cover object-center h-full w-full">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">⛸️ Patín</h3>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🎾 Tenis</h3>
                     </div>
                     
-                    <div class="w-1/5 h-full relative group">
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
                         <img src="https://images.unsplash.com/photo-1530549387789-4c1002206677?auto=format&fit=crop&w=1000&q=80" alt="Natación" class="rounded-[24px] object-cover object-center h-full w-full">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏊 Natación</h3>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏊 Natación</h3>
+                    </div>
+
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
+                        <img src="https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=1000&q=80" alt="Pádel" class="rounded-[24px] object-cover object-center h-full w-full">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏸 Pádel</h3>
+                    </div>
+
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
+                        <img src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=1000&q=80" alt="Gimnasia Artística" class="rounded-[24px] object-cover object-center h-full w-full">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🤸 Gimnasia Art.</h3>
+                    </div>
+
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
+                        <img src="https://images.unsplash.com/photo-1516600164266-f3bf19914447?auto=format&fit=crop&w=1000&q=80" alt="Fútbol Infantil" class="rounded-[24px] object-cover object-center h-full w-full">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">👦 Fútbol Infantil</h3>
+                    </div>
+
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
+                        <img src="https://images.unsplash.com/photo-1534158914592-062992fbe900?auto=format&fit=crop&w=1000&q=80" alt="Bochas" class="rounded-[24px] object-cover object-center h-full w-full">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🎳 Bochas</h3>
+                    </div>
+
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
+                        <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&w=1000&q=80" alt="Básquet Menores" class="rounded-[24px] object-cover object-center h-full w-full">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
+                        <h3 class="absolute bottom-8 left-8 text-3xl md:text-4xl font-black text-white tracking-tighter drop-shadow-lg">🧒 Básquet Menores</h3>
                     </div>
 
                 </div>
@@ -263,12 +286,13 @@
             const carousel = document.getElementById('sport-carousel');
             const prevBtn = document.getElementById('carousel-prev');
             const nextBtn = document.getElementById('carousel-next');
-            const totalSlides = 5; 
+            const totalSlides = 10; // Ahora son 10 disciplinas
             let currentIndex = 0;
             let carouselInterval;
 
             function updateCarousel() {
-                carousel.style.transform = `translateX(-${currentIndex * 20}%)`;
+                // Al tener 10 fotos, cada salto es del 10%
+                carousel.style.transform = `translateX(-${currentIndex * 10}%)`;
             }
 
             function nextSlide() {
@@ -303,7 +327,6 @@
 
             startInterval();
             
-            // Pausa al pasar el mouse por encima del carrusel
             carousel.parentElement.addEventListener('mouseenter', stopInterval);
             carousel.parentElement.addEventListener('mouseleave', startInterval);
         });
