@@ -196,22 +196,9 @@ async function abrirBuzonSugerencias() {
 function imprimirCartelBuzon() {
     const canvas = document.querySelector('#qr-buzon-container canvas');
     if (!canvas) { alert("Aguarde un segundo a que se genere el código QR."); return; }
-    
     const qrDataUrl = canvas.toDataURL("image/png");
     const cartel = document.getElementById('cartel-impresion');
-    
-    cartel.innerHTML = `
-        <div style="text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; width: 100%; max-width: 800px; padding: 20px; box-sizing: border-box;">
-            <h1 style="font-size: 40px; font-weight: 900; margin: 0 0 5px 0; color: #0f172a;">${usuarioActual.club_nombre}</h1>
-            <h2 style="font-size: 22px; color: #4f46e5; margin: 0 0 30px 0; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2>
-            <div style="font-size: 70px; margin-bottom: 0;">📥</div>
-            <h1 style="font-size: 50px; font-weight: 900; margin: 0 0 15px 0; color: #1e293b;">Buzón de Sugerencias</h1>
-            <p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.</p>
-            <div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;"><img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" /></div>
-            <p style="font-size: 16px; font-weight: bold; color: #94a3b8; margin: 0;">¡Gracias por ser parte de nuestra comunidad!</p>
-        </div>
-    `;
-
+    cartel.innerHTML = `<div style="text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; width: 100%; max-width: 800px; padding: 20px; box-sizing: border-box;"><h1 style="font-size: 40px; font-weight: 900; margin: 0 0 5px 0; color: #0f172a;">${usuarioActual.club_nombre}</h1><h2 style="font-size: 22px; color: #4f46e5; margin: 0 0 30px 0; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2><div style="font-size: 70px; margin-bottom: 0;">📥</div><h1 style="font-size: 50px; font-weight: 900; margin: 0 0 15px 0; color: #1e293b;">Buzón de Sugerencias</h1><p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.</p><div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;"><img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" /></div><p style="font-size: 16px; font-weight: bold; color: #94a3b8; margin: 0;">¡Gracias por ser parte de nuestra comunidad!</p></div>`;
     document.body.classList.add('printing-poster');
     setTimeout(() => { window.print(); document.body.classList.remove('printing-poster'); cartel.innerHTML = ''; }, 300);
 }
@@ -277,7 +264,6 @@ function filtrarCategoria(cat) { categoriaActiva = cat; ['TODOS', 'COMIDA', 'BEB
 function aplicarFiltros() { const txt = document.getElementById('buscador').value.toLowerCase(); const filtrados = listaProductosGlobal.filter(p => { const matchTxt = p.nombre.toLowerCase().includes(txt); const matchCat = categoriaActiva === 'TODOS' || p.categoria === categoriaActiva; return matchTxt && matchCat; }); renderizarProductos(filtrados); }
 async function cargarProductos() { const res = await fetch(`/productos/${usuarioActual.deporte_id}`, {headers:authH()}); listaProductosGlobal = await res.json(); aplicarFiltros(); cargarHistoriales(); renderizarProductosModal(); }
 
-// FUNCIÓN DE RENDERIZADO SIMPLIFICADA
 function renderizarProductos(p) { 
     document.getElementById('grilla-productos').innerHTML = p.map(x => { 
         let badge = ''; 
@@ -304,7 +290,6 @@ async function guardarProducto() {
 }
 async function eliminarProducto() { if(!idProductoEditar) return; if(confirm("⚠️ ¿Eliminar permanentemente?")) { await fetch(`/productos/${idProductoEditar}`, { method: 'DELETE', headers: authH() }); await cargarProductos(); limpiarFormularioProducto(); } }
 
-// LÓGICA DE CARRITO ACTUALIZADA (AHORA TOMA LA IMAGEN DEL PRODUCTO)
 function agregarAlCarrito(id) { 
     const p = listaProductosGlobal.find(x => x.id === id);
     if(!p) return;
@@ -332,7 +317,6 @@ function actualizarCarrito() {
     } 
     document.getElementById('btn-confirmar').disabled = false; 
     
-    // RENDERIZADO DEL ITEM EN EL CARRITO CON IMAGEN
     lista.innerHTML = carrito.map((x, i) => { 
         t += x.precio * x.cantidad; 
         let imgRender = x.imagen ? 
@@ -367,6 +351,14 @@ async function confirmarVenta() {
     btn.innerHTML = `CONFIRMAR`; btn.disabled = false;
 }
 function limpiarVentaExitosa() { carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); cargarProductos(); document.getElementById('ticket-impresion').style.display = 'none'; document.getElementById('buscador').focus(); }
+
+function mostrarModalQR(codigo) {
+    document.getElementById('qr-codigo-texto').innerText = codigo;
+    const container = document.getElementById('qr-container'); container.innerHTML = ''; 
+    qrcodeGenerador = new QRCode(container, { text: codigo, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
+    document.getElementById('modal-qr').classList.replace('hidden', 'flex');
+}
+function cerrarModalQR() { document.getElementById('modal-qr').classList.replace('flex', 'hidden'); limpiarVentaExitosa(); }
 
 function verDespacho() {
     document.getElementById('panel-dashboard').classList.add('hidden');
@@ -430,3 +422,6 @@ async function ejecutarCierreDefinitivo() {
 }
 
 function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Gastos/Retiros:</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
+
+// ESTA ERA LA FUNCIÓN QUE FALTABA
+function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
