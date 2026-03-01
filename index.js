@@ -5,7 +5,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const compression = require('compression'); 
 const rateLimit = require('express-rate-limit'); 
-const path = require('path'); // Añadido para manejar rutas de archivos
+const path = require('path');
+const multer = require('multer'); // NUEVA LIBRERÍA PARA SUBIR FOTOS
 
 const app = express();
 app.use(compression());
@@ -15,14 +16,19 @@ app.use(limiter);
 app.use(express.static('public')); 
 app.use(express.json()); 
 
+// CONFIGURACIÓN DE MEMORIA PARA FOTOS (Base64 para no perderlas en Railway)
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 } // Límite de 5MB por foto
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'SuperFirmaSecretaBuffet2024';
-const DB_PATH = process.env.DB_PATH || './buffet.db'; // Lo sacamos afuera para usarlo en el backup
+const DB_PATH = process.env.DB_PATH || './buffet.db'; 
 let db;
 
 (async () => {
     try {
         db = await open({ filename: DB_PATH, driver: sqlite3.Database });
-
         console.log(`🛠️ Conectado a la Base de Datos en: ${DB_PATH}`);
 
         await db.exec(`
@@ -56,7 +62,7 @@ let db;
             await db.run('INSERT OR IGNORE INTO deportes (id, nombre, club_id) VALUES (1, "ADMINISTRACIÓN", 1)');
         }
 
-        console.log("✅ Servidor iniciado. 🛡️ Módulo de Backup Integrado.");
+        console.log("✅ Servidor iniciado. 🛡️ Módulo de Subida de Fotos Activo.");
     } catch (error) { console.error("❌ Error crítico:", error); }
 })();
 
@@ -71,35 +77,16 @@ const verificarToken = (req, res, next) => {
     });
 };
 
-// =======================================================
-// 💾 RUTA DE BACKUP (SOLO PARA DUEÑO DEL SISTEMA)
-// =======================================================
 app.get('/api/backup', verificarToken, (req, res) => {
-    // Seguridad extrema: Solo el SYSADMIN puede descargar el archivo
-    if (req.usuarioVerificado.rol !== 'SYSADMIN') {
-        return res.status(403).json({ success: false, mensaje: "No tienes permisos para descargar la base de datos." });
-    }
+    if (req.usuarioVerificado.rol !== 'SYSADMIN') return res.status(403).json({ success: false, mensaje: "No tienes permisos" });
     const file = path.resolve(__dirname, DB_PATH);
     res.download(file, `buffet_backup_${new Date().toISOString().split('T')[0]}.db`, (err) => {
         if (err) { console.error("Error enviando backup:", err); res.status(500).send("Error al generar backup"); }
     });
 });
 
-app.get('/public/info-deporte/:id', async (req, res) => {
-    try {
-        const info = await db.get('SELECT d.nombre as deporte, c.nombre as club, d.imagen as logo FROM deportes d JOIN clubes c ON d.club_id = c.id WHERE d.id = ?', [req.params.id]);
-        res.json({ success: true, data: info });
-    } catch (e) { res.json({ success: false }); }
-});
-
-app.post('/public/comentarios', async (req, res) => {
-    try {
-        const { deporte_id, autor, mensaje } = req.body;
-        if (!deporte_id || !mensaje) return res.json({ success: false });
-        await db.run('INSERT INTO comentarios (deporte_id, autor, mensaje) VALUES (?, ?, ?)', [deporte_id, autor || 'Anónimo', mensaje]);
-        res.json({ success: true });
-    } catch (e) { res.json({ success: false }); }
-});
+app.get('/public/info-deporte/:id', async (req, res) => { try { const info = await db.get('SELECT d.nombre as deporte, c.nombre as club, d.imagen as logo FROM deportes d JOIN clubes c ON d.club_id = c.id WHERE d.id = ?', [req.params.id]); res.json({ success: true, data: info }); } catch (e) { res.json({ success: false }); } });
+app.post('/public/comentarios', async (req, res) => { try { const { deporte_id, autor, mensaje } = req.body; if (!deporte_id || !mensaje) return res.json({ success: false }); await db.run('INSERT INTO comentarios (deporte_id, autor, mensaje) VALUES (?, ?, ?)', [deporte_id, autor || 'Anónimo', mensaje]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
@@ -137,9 +124,7 @@ app.get('/estadisticas-subcomision/:deporteId', verificarToken, async (req, res)
         const movEgr = await db.all(`SELECT cuenta_origen, SUM(monto) as t FROM movimientos WHERE deporte_id = ? AND tipo = 'EGRESO' GROUP BY cuenta_origen`, [id]);
         const transfOut = await db.all(`SELECT cuenta_origen, SUM(monto) as t FROM movimientos WHERE deporte_id = ? AND tipo = 'TRANSFERENCIA' GROUP BY cuenta_origen`, [id]);
         const transfIn = await db.all(`SELECT cuenta_destino, SUM(monto) as t FROM movimientos WHERE deporte_id = ? AND tipo = 'TRANSFERENCIA' GROUP BY cuenta_destino`, [id]);
-        let saldo_efectivo = (ventasEf.t || 0) - (gastos.t || 0);
-        let saldo_banco = (ventasBa.t || 0);
-        let saldo_mutual = 0;
+        let saldo_efectivo = (ventasEf.t || 0) - (gastos.t || 0); let saldo_banco = (ventasBa.t || 0); let saldo_mutual = 0;
         movIng.forEach(m => { if(m.cuenta_origen === 'EFECTIVO') saldo_efectivo += m.t; if(m.cuenta_origen === 'BANCO') saldo_banco += m.t; if(m.cuenta_origen === 'MUTUAL') saldo_mutual += m.t; });
         movEgr.forEach(m => { if(m.cuenta_origen === 'EFECTIVO') saldo_efectivo -= m.t; if(m.cuenta_origen === 'BANCO') saldo_banco -= m.t; if(m.cuenta_origen === 'MUTUAL') saldo_mutual -= m.t; });
         transfOut.forEach(m => { if(m.cuenta_origen === 'EFECTIVO') saldo_efectivo -= m.t; if(m.cuenta_origen === 'BANCO') saldo_banco -= m.t; if(m.cuenta_origen === 'MUTUAL') saldo_mutual -= m.t; });
@@ -165,11 +150,60 @@ app.delete('/usuarios/:id', verificarToken, async (req, res) => { try { await db
 app.post('/abrir-caja', verificarToken, async (req, res) => { try { const result = await db.run('INSERT INTO cajas (usuario_id, monto_apertura, club_id, deporte_id) VALUES (?, ?, ?, ?)', [req.body.usuario_id, req.body.monto_inicial, req.body.club_id, req.body.deporte_id]); res.json({ success: true, cajaId: result.lastID }); } catch (e) { res.json({ success: false }); } });
 app.put('/cerrar-caja/:id', verificarToken, async (req, res) => { try { await db.run('UPDATE cajas SET estado = "CERRADA" WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
+// =======================================================
+// 📦 NUEVA RUTA DE PRODUCTOS (SOPORTA ARCHIVOS Y URLS)
+// =======================================================
 app.get('/productos/:deporteId', verificarToken, async (req, res) => { try { res.json(await db.all('SELECT * FROM productos WHERE deporte_id = ? ORDER BY id DESC', [req.params.deporteId])); } catch (e) { res.status(500).json({ error: e.message }); } });
-app.post('/productos', verificarToken, async (req, res) => { try { await db.run('INSERT INTO productos (nombre, precio, stock, imagen, categoria, club_id, deporte_id) VALUES (?, ?, ?, ?, ?, ?, ?)', [req.body.nombre, req.body.precio, req.body.stock, req.body.imagen, req.body.categoria, req.body.club_id, req.body.deporte_id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
-app.put('/productos/:id', verificarToken, async (req, res) => { try { await db.run('UPDATE productos SET nombre = ?, precio = ?, stock = ?, imagen = ?, categoria = ? WHERE id = ?', [req.body.nombre, req.body.precio, req.body.stock, req.body.imagen, req.body.categoria, req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
+
+// POST: CREAR PRODUCTO CON LAS 3 OPCIONES
+app.post('/productos', verificarToken, upload.single('imagen_file'), async (req, res) => { 
+    try { 
+        let imagenFinal = '';
+        if (req.file) {
+            // Opción 1: Archivo Subido (Convertido a Base64 para guardado perpetuo)
+            const base64Image = req.file.buffer.toString('base64');
+            imagenFinal = `data:${req.file.mimetype};base64,${base64Image}`;
+        } else if (req.body.imagen_url && req.body.imagen_url.trim() !== '') {
+            // Opción 2: URL Pegada
+            imagenFinal = req.body.imagen_url.trim();
+        } else {
+            // Opción 3: Mágia Automática de la IA
+            imagenFinal = `https://ui-avatars.com/api/?name=${encodeURIComponent(req.body.nombre)}&background=random&color=fff&size=200&bold=true`;
+        }
+
+        await db.run('INSERT INTO productos (nombre, precio, stock, imagen, categoria, club_id, deporte_id) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+        [req.body.nombre, req.body.precio, req.body.stock, imagenFinal, req.body.categoria, req.body.club_id, req.body.deporte_id]); 
+        res.json({ success: true }); 
+    } catch (e) { res.json({ success: false, error: e.message }); } 
+});
+
+// PUT: EDITAR PRODUCTO
+app.put('/productos/:id', verificarToken, upload.single('imagen_file'), async (req, res) => { 
+    try { 
+        let imagenFinal = null; // null significa que no quiso cambiarla
+        
+        if (req.file) {
+            const base64Image = req.file.buffer.toString('base64');
+            imagenFinal = `data:${req.file.mimetype};base64,${base64Image}`;
+        } else if (req.body.imagen_url && req.body.imagen_url.trim() !== '') {
+            imagenFinal = req.body.imagen_url.trim();
+        }
+
+        if (imagenFinal) {
+            // Actualiza TODO incluyendo la nueva foto
+            await db.run('UPDATE productos SET nombre = ?, precio = ?, stock = ?, imagen = ?, categoria = ? WHERE id = ?', [req.body.nombre, req.body.precio, req.body.stock, imagenFinal, req.body.categoria, req.params.id]); 
+        } else {
+            // Mantiene la foto vieja, solo actualiza datos
+            await db.run('UPDATE productos SET nombre = ?, precio = ?, stock = ?, categoria = ? WHERE id = ?', [req.body.nombre, req.body.precio, req.body.stock, req.body.categoria, req.params.id]); 
+        }
+        
+        res.json({ success: true }); 
+    } catch (e) { res.json({ success: false }); } 
+});
+
 app.delete('/productos/:id', verificarToken, async (req, res) => { try { await db.run('DELETE FROM productos WHERE id = ?', [req.params.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
+// VENTAS Y DESPACHO
 app.post('/confirmar-venta', verificarToken, async (req, res) => {
     const { items, metodoPago, caja_id, club_id, deporte_id, requiere_despacho } = req.body;
     try {
@@ -194,6 +228,7 @@ app.get('/despacho/pendientes/:deporteId', verificarToken, async (req, res) => {
 app.get('/despacho/entregados/:deporteId', verificarToken, async (req, res) => { try { const ventas = await db.all(`SELECT id, codigo_retiro, fecha FROM ventas WHERE deporte_id = ? AND estado_entrega = 'ENTREGADO' AND codigo_retiro IS NOT NULL ORDER BY id DESC LIMIT 15`, [req.params.deporteId]); for (let v of ventas) { v.items = await db.all(`SELECT producto_nombre, cantidad FROM ventas_detalles WHERE venta_id = ?`, [v.id]); } res.json(ventas); } catch (e) { res.status(500).json({error: e.message}); } });
 app.get('/despacho/buscar/:codigo/:deporteId', verificarToken, async (req, res) => { try { const venta = await db.get(`SELECT id, codigo_retiro, estado_entrega, fecha FROM ventas WHERE codigo_retiro = ? AND deporte_id = ?`, [req.params.codigo.toUpperCase(), req.params.deporteId]); if (!venta) return res.json({ success: false, mensaje: "TICKET NO ENCONTRADO" }); if (venta.estado_entrega === 'ENTREGADO') return res.json({ success: false, mensaje: "❌ ESTE TICKET YA FUE ENTREGADO" }); venta.items = await db.all(`SELECT producto_nombre, cantidad FROM ventas_detalles WHERE venta_id = ?`, [venta.id]); res.json({ success: true, venta }); } catch (e) { res.status(500).json({error: e.message}); } });
 app.put('/despacho/entregar/:id', verificarToken, async (req, res) => { try { await db.run(`UPDATE ventas SET estado_entrega = 'ENTREGADO' WHERE id = ?`, [req.params.id]); res.json({success:true}); } catch (e) { res.status(500).json({error: e.message}); } });
+
 app.post('/gastos', verificarToken, async (req, res) => { try { await db.run('INSERT INTO gastos (descripcion, monto, caja_id, club_id, deporte_id) VALUES (?, ?, ?, ?, ?)', [req.body.descripcion, req.body.monto, req.body.caja_id, req.body.club_id, req.body.deporte_id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.get('/resumen-caja/:id', verificarToken, async (req, res) => { try { const info = await db.get('SELECT * FROM cajas WHERE id = ?', [req.params.id]); const ventas = await db.all('SELECT metodoPago as metodo, SUM(total) as total FROM ventas WHERE caja_id = ? GROUP BY metodoPago', [req.params.id]); const gastos = await db.get('SELECT SUM(monto) as total FROM gastos WHERE caja_id = ?', [req.params.id]); res.json({ ventas, gastos: gastos.total || 0, apertura: info.monto_apertura || 0 }); } catch (e) { res.status(500).json({ error: e.message }); } });
 app.get('/historial-ventas/:cajaId', verificarToken, async (req, res) => { try { res.json(await db.all("SELECT * FROM ventas WHERE caja_id = ? ORDER BY id DESC", [req.params.cajaId])); } catch (e) { res.json([]); } });

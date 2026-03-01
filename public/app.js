@@ -53,8 +53,6 @@ function configurarInterfazPorRol() {
     document.getElementById('panel-dashboard').classList.add('hidden');
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
-    
-    // Agregamos el btn-backup a la lista de ocultos por defecto
     ['btn-backup', 'btn-clubes', 'btn-deportes', 'btn-usuarios', 'btn-cierre', 'btn-gastos', 'btn-nuevo-prod', 'btn-dash-sport', 'btn-pos-sport', 'btn-despacho'].forEach(id => document.getElementById(id).classList.add('hidden'));
     
     document.getElementById('header-rol').innerText = usuarioActual.rol;
@@ -63,10 +61,7 @@ function configurarInterfazPorRol() {
     if (usuarioActual.rol === 'SYSADMIN') {
         document.getElementById('header-entidad-nombre').innerText = "SaaS Central";
         document.getElementById('main-header').classList.replace('header-gradient-club', 'header-gradient');
-        
-        // MOSTRAR BOTÓN DE BACKUP SOLO AL DUEÑO
         ['btn-backup', 'btn-clubes', 'btn-deportes', 'btn-usuarios'].forEach(id => document.getElementById(id).classList.remove('hidden'));
-        
         document.getElementById('panel-dashboard').classList.remove('hidden');
         cargarDashboard('HOME');
     } 
@@ -94,27 +89,18 @@ function configurarInterfazPorRol() {
 
 function cerrarSesion() { tokenGlobal = null; sessionStorage.clear(); window.location.reload(); }
 
-// =========================================================
-// 💾 FUNCIÓN DE DESCARGA DE BACKUP SEGURO
-// =========================================================
 async function descargarBackup() {
     try {
         const res = await fetch('/api/backup', { headers: authH() });
-        if (!res.ok) throw new Error("No autorizado o error de servidor");
-        
+        if (!res.ok) throw new Error("No autorizado");
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        const fecha = new Date().toISOString().split('T')[0];
-        a.download = `buffet_backup_${fecha}.db`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    } catch (e) {
-        alert("Error al descargar el backup: " + e.message);
-    }
+        a.download = `buffet_backup_${new Date().toISOString().split('T')[0]}.db`;
+        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url);
+    } catch (e) { alert("Error al descargar el backup: " + e.message); }
 }
 
 function verPOS() {
@@ -130,10 +116,8 @@ async function verDashboardSport(overrideDeporteId = null, overrideNombre = null
     document.getElementById('panel-despacho').classList.add('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('panel-dashboard').classList.remove('hidden');
-    
     const divContenido = document.getElementById('contenido-dashboard');
     divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas y billeteras...</p>';
-
     const targetDeporteId = overrideDeporteId || usuarioActual.deporte_id;
     const targetNombre = overrideNombre || 'Tesorería General';
     const isAuditor = overrideDeporteId !== null;
@@ -168,34 +152,10 @@ async function verDashboardSport(overrideDeporteId = null, overrideNombre = null
             : `<div class="mb-8 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter">Patrimonio: $${stats.total}</h2><div class="mt-2 text-slate-500 font-bold">Balance multicuentas de la subcomisión</div></div><button onclick="verDashboardSport()" class="bg-white text-slate-600 px-6 py-3 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-all">🔄 Actualizar</button></div>`;
 
         let botonesAccionHTML = !isAuditor
-            ? `<div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
-                    <button onclick="abrirBuzonSugerencias()" class="shrink-0 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-purple-200">💬 Buzón</button>
-                    <button onclick="abrirModalMovimiento('INGRESO')" class="shrink-0 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">+ Ingreso</button>
-                    <button onclick="abrirModalMovimiento('EGRESO')" class="shrink-0 bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">- Egreso</button>
-                    <button onclick="abrirModalMovimiento('TRANSFERENCIA')" class="shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-blue-200">🔄 Transferir</button>
-               </div>`
+            ? `<div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1"><button onclick="abrirBuzonSugerencias()" class="shrink-0 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-purple-200">💬 Buzón</button><button onclick="abrirModalMovimiento('INGRESO')" class="shrink-0 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">+ Ingreso</button><button onclick="abrirModalMovimiento('EGRESO')" class="shrink-0 bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-xl font-black text-xs transition-colors">- Egreso</button><button onclick="abrirModalMovimiento('TRANSFERENCIA')" class="shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl font-black text-xs transition-colors shadow-sm border border-blue-200">🔄 Transferir</button></div>`
             : `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">Modo Solo Lectura</span>`;
 
-        divContenido.innerHTML = `
-            ${headerHTML}
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-                <div class="bg-emerald-50 p-6 rounded-[32px] border border-emerald-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"><span class="text-emerald-700 font-black text-xs uppercase tracking-widest block mb-2">💵 Efectivo (Caja)</span><span class="text-4xl font-black text-emerald-900">$${stats.saldo_efectivo}</span></div>
-                <div class="bg-blue-50 p-6 rounded-[32px] border border-blue-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"><span class="text-blue-700 font-black text-xs uppercase tracking-widest block mb-2">🏦 Banco (CBU/CVU)</span><span class="text-4xl font-black text-blue-900">$${stats.saldo_banco}</span></div>
-                <div class="bg-purple-50 p-6 rounded-[32px] border border-purple-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"><span class="text-purple-700 font-black text-xs uppercase tracking-widest block mb-2">🏛️ Mutual</span><span class="text-4xl font-black text-purple-900">$${stats.saldo_mutual}</span></div>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
-                        <h3 class="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">📒 Libro Mayor</h3>
-                        ${botonesAccionHTML}
-                    </div>
-                    <div class="bg-slate-50 p-4 rounded-[32px] border border-slate-200 shadow-inner h-[400px] overflow-y-auto">${htmlMovs}</div>
-                </div>
-                <div class="space-y-8">
-                    <div><h3 class="font-black text-slate-800 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">🛒 Turnos de Caja (POS)</h3><div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[220px] overflow-y-auto">${htmlCajas}</div></div>
-                    <div><h3 class="font-black text-rose-600 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">⚠️ Alerta Stock Crítico</h3><div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[160px] overflow-y-auto">${htmlStock}</div></div>
-                </div>
-            </div>`;
+        divContenido.innerHTML = `${headerHTML}<div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8"><div class="bg-emerald-50 p-6 rounded-[32px] border border-emerald-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"><span class="text-emerald-700 font-black text-xs uppercase tracking-widest block mb-2">💵 Efectivo (Caja)</span><span class="text-4xl font-black text-emerald-900">$${stats.saldo_efectivo}</span></div><div class="bg-blue-50 p-6 rounded-[32px] border border-blue-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"><span class="text-blue-700 font-black text-xs uppercase tracking-widest block mb-2">🏦 Banco (CBU/CVU)</span><span class="text-4xl font-black text-blue-900">$${stats.saldo_banco}</span></div><div class="bg-purple-50 p-6 rounded-[32px] border border-purple-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"><span class="text-purple-700 font-black text-xs uppercase tracking-widest block mb-2">🏛️ Mutual</span><span class="text-4xl font-black text-purple-900">$${stats.saldo_mutual}</span></div></div><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2"><div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4"><h3 class="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">📒 Libro Mayor</h3>${botonesAccionHTML}</div><div class="bg-slate-50 p-4 rounded-[32px] border border-slate-200 shadow-inner h-[400px] overflow-y-auto">${htmlMovs}</div></div><div class="space-y-8"><div><h3 class="font-black text-slate-800 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">🛒 Turnos de Caja (POS)</h3><div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[220px] overflow-y-auto">${htmlCajas}</div></div><div><h3 class="font-black text-rose-600 mb-4 uppercase tracking-widest text-sm flex items-center gap-2">⚠️ Alerta Stock Crítico</h3><div class="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm max-h-[160px] overflow-y-auto">${htmlStock}</div></div></div></div>`;
     } catch (e) { divContenido.innerHTML = '<p class="text-center text-rose-500 font-bold mt-10">Error al cargar métricas.</p>'; }
 }
 
@@ -216,11 +176,8 @@ async function cargarDashboard(clubIdToView = null) {
             grillaHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">` + data.map(d => { 
                 const neto = d.total_ventas - d.total_gastos; 
                 let btnEntrar = ''; 
-                if (usuarioActual.rol === 'SYSADMIN' && !vistaDashboardActual) { 
-                    btnEntrar = `<button onclick="cargarDashboard(${d.id})" class="mt-5 w-full bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all">Ver Subcomisiones ➔</button>`; 
-                } else {
-                    btnEntrar = `<button onclick="verDashboardSport(${d.id}, '${d.nombre.replace(/'/g, "\\'")}')" class="mt-5 w-full bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white text-blue-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm">Auditar Movimientos ➔</button>`;
-                }
+                if (usuarioActual.rol === 'SYSADMIN' && !vistaDashboardActual) { btnEntrar = `<button onclick="cargarDashboard(${d.id})" class="mt-5 w-full bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all">Ver Subcomisiones ➔</button>`; } 
+                else { btnEntrar = `<button onclick="verDashboardSport(${d.id}, '${d.nombre.replace(/'/g, "\\'")}')" class="mt-5 w-full bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white text-blue-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm">Auditar Movimientos ➔</button>`; }
                 return `<div class="bg-white p-6 rounded-[32px] shadow-sm border flex flex-col hover:shadow-lg transition-shadow"><div class="flex items-center gap-4 mb-4"><img src="${d.logo || d.imagen || 'https://via.placeholder.com/50'}" class="w-12 h-12 rounded-xl object-cover"><h3 class="text-xl font-black text-slate-800 leading-tight">${d.nombre}</h3></div><div class="space-y-2 mb-4"><div class="bg-emerald-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-emerald-600">INGRESOS</span><span class="font-black text-emerald-600">$${d.total_ventas}</span></div><div class="bg-rose-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-rose-600">GASTOS</span><span class="font-black text-rose-600">-$${d.total_gastos}</span></div></div><div class="border-t pt-3 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">NETO</span><span class="text-2xl font-black ${neto>=0?'text-slate-800':'text-rose-500'}">$${neto}</span></div>${btnEntrar}</div>`; 
             }).join('') + `</div>`; 
         }
@@ -254,9 +211,7 @@ function imprimirCartelBuzon() {
             <p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">
                 Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.
             </p>
-            <div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;">
-                <img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" />
-            </div>
+            <div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;"><img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" /></div>
             <p style="font-size: 16px; font-weight: bold; color: #94a3b8; margin: 0;">¡Gracias por ser parte de nuestra comunidad!</p>
         </div>
     `;
@@ -272,16 +227,7 @@ async function cargarComentariosBuzon() {
         const res = await fetch(`/comentarios/${usuarioActual.deporte_id}`, { headers: authH() });
         const msjs = await res.json();
         if(msjs.length === 0) { lista.innerHTML = '<div class="text-center py-10 opacity-50"><span class="text-4xl block mb-2">📭</span><p class="font-bold text-slate-500">Buzón vacío</p></div>'; return; }
-        lista.innerHTML = msjs.map(m => `
-            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 relative group">
-                <button onclick="eliminarComentario(${m.id})" class="absolute top-2 right-2 text-rose-300 hover:text-rose-600 font-black px-2 hidden group-hover:block transition-colors">X</button>
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-black text-slate-700 text-sm">👤 ${m.autor}</span>
-                    <span class="text-[9px] text-slate-400 font-bold">${m.fecha}</span>
-                </div>
-                <p class="text-slate-600 text-sm italic">"${m.mensaje}"</p>
-            </div>
-        `).join('');
+        lista.innerHTML = msjs.map(m => `<div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 relative group"><button onclick="eliminarComentario(${m.id})" class="absolute top-2 right-2 text-rose-300 hover:text-rose-600 font-black px-2 hidden group-hover:block transition-colors">X</button><div class="flex justify-between items-center mb-2"><span class="font-black text-slate-700 text-sm">👤 ${m.autor}</span><span class="text-[9px] text-slate-400 font-bold">${m.fecha}</span></div><p class="text-slate-600 text-sm italic">"${m.mensaje}"</p></div>`).join('');
     } catch (e) { lista.innerHTML = '<p class="text-rose-500 text-sm">Error de conexión.</p>'; }
 }
 
@@ -337,10 +283,43 @@ async function cargarProductos() { const res = await fetch(`/productos/${usuario
 function renderizarProductos(p) { document.getElementById('grilla-productos').innerHTML = p.map(x => { let badge = ''; if(x.categoria === 'COMIDA') badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-amber-400 text-amber-950 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🍔 Comida</span>'; else if(x.categoria === 'BEBIDA') badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-cyan-400 text-cyan-950 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🥤 Bebida</span>'; else badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-slate-200 text-slate-700 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🛒 Otros</span>'; return `<div class="product-card cursor-pointer group select-none relative" onclick="agregarAlCarrito(${x.id}, '${x.nombre}', ${x.precio}, ${x.stock}, '${x.categoria}')">${badge}<button onclick="event.stopPropagation(); abrirModalEditar(${x.id})" class="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-400 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-lg shadow-sm z-30 hover:bg-blue-50 hover:text-blue-600 transition-colors border border-slate-100 opacity-0 group-hover:opacity-100" title="Editar Producto"><span class="text-[10px] lg:text-sm">✏️</span></button><div class="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center backdrop-blur-[1px] pointer-events-none"><span class="bg-blue-600 text-white font-black text-[10px] lg:text-xs px-4 py-2 lg:px-5 lg:py-3 rounded-xl lg:rounded-2xl shadow-xl translate-y-4 group-hover:translate-y-0 transition-all uppercase tracking-widest">+ AGREGAR</span></div><img src="${x.imagen || 'https://via.placeholder.com/200'}" class="w-full h-20 lg:h-28 object-cover border-b pointer-events-none"><div class="p-3 lg:p-4 relative z-0"><h3 class="font-bold text-slate-800 text-[10px] lg:text-xs mb-1 lg:mb-2 h-7 lg:h-8 overflow-hidden pointer-events-none leading-tight">${x.nombre}</h3><div class="flex justify-between items-end pointer-events-none"><span class="text-sm lg:text-xl font-black text-blue-600 leading-none">$${x.precio}</span><span class="text-[8px] lg:text-[9px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-md">Stock:${x.stock}</span></div></div></div>` }).join(''); }
 function renderizarProductosModal() { const lista = document.getElementById('lista-productos-modal'); if(!lista) return; if(listaProductosGlobal.length === 0) { lista.innerHTML = '<p class="text-xs text-slate-400 italic">No hay productos creados aún.</p>'; return; } lista.innerHTML = listaProductosGlobal.map(p => `<div class="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 transition-colors group" onclick="abrirModalEditar(${p.id})"><div class="flex items-center gap-3"><img src="${p.imagen || 'https://via.placeholder.com/100'}" class="w-10 h-10 rounded-lg object-cover bg-slate-50"><div><p class="font-bold text-xs text-slate-800 group-hover:text-blue-600 transition-colors">${p.nombre}</p><p class="text-[10px] text-slate-500 mt-0.5"><b class="text-blue-600 font-black">$${p.precio}</b> <span class="mx-1">|</span> Stock: <b>${p.stock}</b></p></div></div><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded-md uppercase font-black tracking-widest">${p.categoria}</span></div>`).join(''); }
 
-function limpiarFormularioProducto() { idProductoEditar = null; document.getElementById('titulo-modal-producto').innerText = "Nuevo Producto"; document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-stock').value = ''; document.getElementById('prod-imagen').value = ''; document.getElementById('prod-categoria').value = 'OTROS'; document.getElementById('btn-eliminar-prod').classList.add('hidden'); document.getElementById('prod-nombre').focus(); }
+function limpiarFormularioProducto() { idProductoEditar = null; document.getElementById('titulo-modal-producto').innerText = "Nuevo Producto"; document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-stock').value = ''; document.getElementById('prod-imagen-url').value = ''; document.getElementById('prod-imagen-file').value = ''; document.getElementById('prod-categoria').value = 'OTROS'; document.getElementById('btn-eliminar-prod').classList.add('hidden'); document.getElementById('prod-nombre').focus(); }
 function abrirModalNuevo() { limpiarFormularioProducto(); abrirModal('modal-producto'); }
-function abrirModalEditar(id) { const p = listaProductosGlobal.find(x => x.id === id); if(!p) return; idProductoEditar = id; document.getElementById('titulo-modal-producto').innerText = "Editar Producto"; document.getElementById('prod-nombre').value = p.nombre; document.getElementById('prod-precio').value = p.precio; document.getElementById('prod-stock').value = p.stock; document.getElementById('prod-imagen').value = p.imagen; document.getElementById('prod-categoria').value = p.categoria; document.getElementById('btn-eliminar-prod').classList.remove('hidden'); abrirModal('modal-producto'); }
-async function guardarProducto() { const n = document.getElementById('prod-nombre').value, p = document.getElementById('prod-precio').value, s = document.getElementById('prod-stock').value, i = document.getElementById('prod-imagen').value, c = document.getElementById('prod-categoria').value; if(!n || !p || !s) return alert("⚠️ Completa Nombre, Precio y Stock."); if (idProductoEditar) { await fetch(`/productos/${idProductoEditar}`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ nombre: n, precio: p, stock: s, imagen: i, categoria: c }) }); } else { await fetch('/productos', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ nombre: n, precio: p, stock: s, imagen: i, categoria: c, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) }); } await cargarProductos(); limpiarFormularioProducto(); }
+function abrirModalEditar(id) { const p = listaProductosGlobal.find(x => x.id === id); if(!p) return; idProductoEditar = id; document.getElementById('titulo-modal-producto').innerText = "Editar Producto"; document.getElementById('prod-nombre').value = p.nombre; document.getElementById('prod-precio').value = p.precio; document.getElementById('prod-stock').value = p.stock; document.getElementById('prod-imagen-url').value = ''; document.getElementById('prod-imagen-file').value = ''; document.getElementById('prod-categoria').value = p.categoria; document.getElementById('btn-eliminar-prod').classList.remove('hidden'); abrirModal('modal-producto'); }
+
+// 📦 LÓGICA DE GUARDADO DE PRODUCTOS (SOPORTA FOTOS BASE64 MULTIPART)
+async function guardarProducto() { 
+    const n = document.getElementById('prod-nombre').value;
+    const p = document.getElementById('prod-precio').value;
+    const s = document.getElementById('prod-stock').value;
+    const c = document.getElementById('prod-categoria').value;
+    const urlInput = document.getElementById('prod-imagen-url').value;
+    const fileInput = document.getElementById('prod-imagen-file');
+
+    if(!n || !p || !s) return alert("⚠️ Completa Nombre, Precio y Stock."); 
+    
+    // Usamos FormData porque enviamos archivos
+    const formData = new FormData();
+    formData.append('nombre', n);
+    formData.append('precio', p);
+    formData.append('stock', s);
+    formData.append('categoria', c);
+    formData.append('imagen_url', urlInput);
+    if(fileInput.files.length > 0) formData.append('imagen_file', fileInput.files[0]);
+    
+    if (!idProductoEditar) {
+        formData.append('club_id', usuarioActual.club_id);
+        formData.append('deporte_id', usuarioActual.deporte_id);
+    }
+
+    try {
+        if (idProductoEditar) { await fetch(`/productos/${idProductoEditar}`, { method: 'PUT', headers: authH(), body: formData }); } 
+        else { await fetch('/productos', { method: 'POST', headers: authH(), body: formData }); } 
+        await cargarProductos(); 
+        limpiarFormularioProducto(); 
+    } catch(e) { alert("Error guardando producto."); }
+}
+
 async function eliminarProducto() { if(!idProductoEditar) return; if(confirm("⚠️ ¿Eliminar permanentemente?")) { await fetch(`/productos/${idProductoEditar}`, { method: 'DELETE', headers: authH() }); await cargarProductos(); limpiarFormularioProducto(); } }
 
 function agregarAlCarrito(id, nombre, precio, stock, categoria) { const item = carrito.find(x => x.id === id); if(item) { if(item.cantidad < stock) item.cantidad++; else alert("Sin stock suficiente"); } else { if(stock > 0) carrito.push({id, nombre, precio, cantidad: 1, stockMax: stock, categoria: categoria || 'OTROS'}); else alert("Sin stock"); } actualizarCarrito(); }
@@ -429,4 +408,3 @@ async function ejecutarCierreDefinitivo() {
 }
 
 function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Gastos/Retiros:</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
-function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
