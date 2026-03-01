@@ -229,15 +229,23 @@
     
     <div id="modal-clubes" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4">
         <div class="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col text-center">
-            <h2 class="text-xl md:text-2xl font-black mb-4 md:mb-6 text-slate-800">Gestionar Clubes</h2>
+            <h2 id="titulo-modal-club" class="text-xl md:text-2xl font-black mb-4 md:mb-6 text-slate-800">Gestionar Clubes</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 flex-1 overflow-hidden">
-                <div class="space-y-3 bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 text-left overflow-y-auto shadow-inner">
+                <div class="space-y-3 md:space-y-4 bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 text-left overflow-y-auto shadow-inner relative">
                     <input type="text" id="club-nombre" placeholder="Nombre del Club" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base">
                     <input type="text" id="club-logo" placeholder="URL Logo del Club" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base">
-                    <button onclick="crearClub()" class="w-full bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg mt-4 hover:bg-slate-800 transition-colors text-sm md:text-base">CREAR CLUB</button>
+                    
+                    <div class="flex gap-2 md:gap-3 mt-4 md:mt-6 pt-3 md:pt-4 border-t border-slate-200">
+                        <button onclick="limpiarFormClub()" class="flex-1 bg-white border-2 border-slate-200 text-slate-500 py-3 md:py-4 rounded-xl font-black shadow-sm hover:bg-slate-50 transition-colors text-xs md:text-sm">LIMPIAR</button>
+                        <button id="btn-guardar-club" onclick="guardarClub()" class="flex-[2] bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg hover:bg-blue-600 transition-colors text-xs md:text-sm">GUARDAR CLUB</button>
+                    </div>
                 </div>
+                
                 <div class="flex flex-col overflow-hidden bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 shadow-inner">
-                    <h3 class="font-black text-slate-400 mb-2 md:mb-4 text-left uppercase text-[10px] md:text-xs tracking-widest">Clubes Registrados</h3>
+                    <h3 class="font-black text-slate-400 mb-2 md:mb-4 text-left uppercase text-[10px] md:text-xs tracking-widest flex justify-between items-center">
+                        Clubes Registrados
+                        <span class="text-[8px] md:text-[9px] bg-blue-100 text-blue-600 px-2 py-1 rounded-md">Clic lápiz para editar</span>
+                    </h3>
                     <div id="lista-clubes-db" class="flex-1 overflow-y-auto space-y-2 pr-2 text-left"></div>
                 </div>
             </div>
@@ -247,17 +255,26 @@
     
     <div id="modal-deportes" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4">
         <div class="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col text-center">
-            <h2 class="text-xl md:text-2xl font-black mb-4 md:mb-6 text-slate-800">Subcomisiones</h2>
+            <h2 id="titulo-modal-deporte" class="text-xl md:text-2xl font-black mb-4 md:mb-6 text-slate-800">Gestión de Subcomisiones</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 flex-1 overflow-hidden">
-                <div class="space-y-3 bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 text-left overflow-y-auto shadow-inner">
-                    <label id="label-dep-club" class="block text-[10px] md:text-xs font-bold text-slate-500 ml-2 uppercase hidden">Crear en el Club:</label>
+                <div class="space-y-3 md:space-y-4 bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 text-left overflow-y-auto shadow-inner relative">
+                    <label id="label-dep-club" class="block text-[10px] md:text-xs font-bold text-slate-500 ml-2 uppercase hidden">Pertenece al Club:</label>
                     <select id="dep-club" class="w-full p-3 md:p-4 border-2 rounded-xl font-black bg-white cursor-pointer hidden text-sm md:text-base"></select>
+                    
                     <input type="text" id="dep-nombre" placeholder="Nombre (Ej: BASKET)" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base">
                     <input type="text" id="dep-imagen" placeholder="URL Logo de Subcomisión" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base">
-                    <button onclick="crearDeporte()" class="w-full bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg mt-4 hover:bg-slate-800 transition-colors text-sm md:text-base">CREAR DEPORTE</button>
+                    
+                    <div class="flex gap-2 md:gap-3 mt-4 md:mt-6 pt-3 md:pt-4 border-t border-slate-200">
+                        <button onclick="limpiarFormDeporte()" class="flex-1 bg-white border-2 border-slate-200 text-slate-500 py-3 md:py-4 rounded-xl font-black shadow-sm hover:bg-slate-50 transition-colors text-xs md:text-sm">LIMPIAR</button>
+                        <button id="btn-guardar-dep" onclick="guardarDeporte()" class="flex-[2] bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg hover:bg-blue-600 transition-colors text-xs md:text-sm">CREAR DEPORTE</button>
+                    </div>
                 </div>
+                
                 <div class="flex flex-col overflow-hidden bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 shadow-inner">
-                    <h3 class="font-black text-slate-400 mb-2 md:mb-4 text-left uppercase text-[10px] md:text-xs tracking-widest">Subcomisiones Registradas</h3>
+                    <h3 class="font-black text-slate-400 mb-2 md:mb-4 text-left uppercase text-[10px] md:text-xs tracking-widest flex justify-between items-center">
+                        Subcomisiones Activas
+                        <span class="text-[8px] md:text-[9px] bg-blue-100 text-blue-600 px-2 py-1 rounded-md">Clic lápiz para editar</span>
+                    </h3>
                     <div id="lista-deportes-db" class="flex-1 overflow-y-auto space-y-2 pr-2 text-left"></div>
                 </div>
             </div>

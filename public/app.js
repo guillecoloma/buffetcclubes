@@ -10,6 +10,8 @@ let cajaActualId = null;
 let categoriaActiva = 'TODOS'; 
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
+let idClubEditar = null;         // NUEVO: Variable para saber qué club editamos
+let idDeporteEditar = null;      // NUEVO: Variable para saber qué deporte editamos
 let ticketCierreDatos = {};
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -211,15 +213,139 @@ async function eliminarComentario(id) { if(confirm("¿Borrar este mensaje perman
 function abrirModal(id) { document.getElementById(id).classList.replace('hidden', 'flex'); }
 function cerrarModalGenerico(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
 
-function abrirModalClubes() { listarClubes(); abrirModal('modal-clubes'); }
-async function listarClubes() { const res = await fetch('/clubes', {headers: authH()}); const data = await res.json(); document.getElementById('lista-clubes-db').innerHTML = data.map(c => `<div class="p-4 bg-slate-50 rounded-2xl mb-2 font-bold flex items-center gap-3 border border-slate-100"><img src="${c.logo}" class="w-8 h-8 rounded shadow-sm object-cover">${c.nombre}</div>`).join(''); }
-async function crearClub() { const n = document.getElementById('club-nombre').value, l = document.getElementById('club-logo').value; if(!n) return; await fetch('/clubes', {method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, logo:l}) }); listarClubes(); document.getElementById('club-nombre').value=''; document.getElementById('club-logo').value='';}
+// =========================================================
+// CRUD MAESTRO: CLUBES (AHORA CON EDICIÓN Y SUSPENSIÓN)
+// =========================================================
+function limpiarFormClub() { 
+    idClubEditar = null; 
+    document.getElementById('club-nombre').value = ''; 
+    document.getElementById('club-logo').value = ''; 
+    document.getElementById('btn-guardar-club').innerText = 'CREAR CLUB'; 
+    document.getElementById('titulo-modal-club').innerText = 'Gestionar Clubes';
+}
 
-async function abrirModalDeportes() { const selClub = document.getElementById('dep-club'); const lblClub = document.getElementById('label-dep-club'); if (usuarioActual.rol === 'SYSADMIN') { lblClub.classList.remove('hidden'); selClub.classList.remove('hidden'); const res = await fetch('/clubes', {headers:authH()}); const clubes = await res.json(); selClub.innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); } else { lblClub.classList.add('hidden'); selClub.classList.add('hidden'); } listarDeportes(); abrirModal('modal-deportes'); }
-async function listarDeportes() { let url = usuarioActual.rol === 'SYSADMIN' ? '/deportes' : `/deportes/${usuarioActual.club_id}`; const res = await fetch(url, {headers:authH()}); const deps = await res.json(); document.getElementById('lista-deportes-db').innerHTML = deps.map(d => `<div class="p-4 bg-slate-50 rounded-2xl mb-2 flex justify-between items-center border border-slate-100 shadow-sm"><div class="flex items-center gap-3"><img src="${d.imagen || 'https://via.placeholder.com/50'}" class="w-8 h-8 rounded-lg object-cover ${d.estado === 'INACTIVO' ? 'grayscale opacity-50' : ''}"><div><b class="text-sm ${d.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800'}">${d.nombre}</b>${usuarioActual.rol === 'SYSADMIN' && d.club_nombre ? `<p class="text-[10px] text-slate-400 uppercase tracking-widest">${d.club_nombre}</p>` : ''}</div></div>${usuarioActual.rol === 'SYSADMIN' ? `<button onclick="toggleEstadoDeporte(${d.id}, '${d.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'})" class="text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest transition-colors ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">${d.estado === 'ACTIVO' ? 'Habilitado' : 'Suspendido'}</button>` : `<span class="text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${d.estado}</span>`}</div>`).join(''); }
+function abrirModalClubes() { 
+    limpiarFormClub(); 
+    listarClubes(); 
+    abrirModal('modal-clubes'); 
+}
+
+function abrirModalEditarClub(id, nombre, logo) {
+    idClubEditar = id; 
+    document.getElementById('club-nombre').value = nombre; 
+    document.getElementById('club-logo').value = logo;
+    document.getElementById('btn-guardar-club').innerText = 'ACTUALIZAR CLUB';
+    document.getElementById('titulo-modal-club').innerText = 'Editar Club';
+}
+
+async function guardarClub() { 
+    const n = document.getElementById('club-nombre').value;
+    const l = document.getElementById('club-logo').value; 
+    if(!n) return; 
+    
+    if (idClubEditar) {
+        await fetch(`/clubes/${idClubEditar}`, { method:'PUT', headers: authJsonH(), body: JSON.stringify({nombre:n, logo:l}) });
+    } else {
+        await fetch('/clubes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, logo:l}) });
+    }
+    
+    listarClubes(); 
+    limpiarFormClub();
+}
+
+async function toggleEstadoClub(id, nuevoEstado) { 
+    if(!confirm(`¿Seguro que deseas ${nuevoEstado === 'ACTIVO' ? 'Habilitar' : 'Suspender'} este club? Sus miembros no podrán ingresar.`)) return; 
+    await fetch(`/clubes/${id}/estado`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ estado: nuevoEstado }) }); 
+    listarClubes(); 
+}
+
+async function listarClubes() { 
+    const res = await fetch('/clubes', {headers: authH()}); 
+    const data = await res.json(); 
+    document.getElementById('lista-clubes-db').innerHTML = data.map(c => `
+        <div class="p-3 bg-white rounded-2xl mb-2 flex justify-between items-center border border-slate-200 shadow-sm group">
+            <div class="flex items-center gap-3">
+                <img src="${c.logo}" class="w-8 h-8 rounded-lg shadow-sm object-cover ${c.estado === 'INACTIVO' ? 'grayscale opacity-50' : ''}">
+                <b class="text-xs md:text-sm ${c.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800'}">${c.nombre}</b>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="abrirModalEditarClub(${c.id}, '${c.nombre.replace(/'/g, "\\'")}', '${c.logo}')" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1.5 rounded-lg font-black hover:bg-blue-50 hover:text-blue-600 transition-colors">✏️</button>
+                <button onclick="toggleEstadoClub(${c.id}, '${c.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'})" class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest transition-colors ${c.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">${c.estado === 'ACTIVO' ? 'ON' : 'OFF'}</button>
+            </div>
+        </div>
+    `).join(''); 
+}
+
+// =========================================================
+// CRUD MAESTRO: DEPORTES (AHORA CON EDICIÓN)
+// =========================================================
+function limpiarFormDeporte() { 
+    idDeporteEditar = null; 
+    document.getElementById('dep-nombre').value = ''; 
+    document.getElementById('dep-imagen').value = ''; 
+    document.getElementById('btn-guardar-dep').innerText = 'CREAR DEPORTE'; 
+    document.getElementById('titulo-modal-deporte').innerText = 'Gestión de Subcomisiones';
+}
+
+async function abrirModalDeportes() { 
+    limpiarFormDeporte();
+    const selClub = document.getElementById('dep-club'); const lblClub = document.getElementById('label-dep-club'); 
+    if (usuarioActual.rol === 'SYSADMIN') { lblClub.classList.remove('hidden'); selClub.classList.remove('hidden'); const res = await fetch('/clubes', {headers:authH()}); const clubes = await res.json(); selClub.innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); } 
+    else { lblClub.classList.add('hidden'); selClub.classList.add('hidden'); } 
+    listarDeportes(); abrirModal('modal-deportes'); 
+}
+
+function abrirModalEditarDeporte(id, nombre, imagen, club_id) {
+    idDeporteEditar = id; 
+    document.getElementById('dep-nombre').value = nombre; 
+    document.getElementById('dep-imagen').value = imagen;
+    if(document.getElementById('dep-club')) document.getElementById('dep-club').value = club_id;
+    document.getElementById('btn-guardar-dep').innerText = 'ACTUALIZAR DEPORTE';
+    document.getElementById('titulo-modal-deporte').innerText = 'Editar Subcomisión';
+}
+
+async function guardarDeporte() { 
+    const n = document.getElementById('dep-nombre').value;
+    const i = document.getElementById('dep-imagen').value;
+    const c = usuarioActual.rol === 'SYSADMIN' ? document.getElementById('dep-club').value : usuarioActual.club_id; 
+    if(!n || !c) return alert("Faltan datos"); 
+    
+    if(idDeporteEditar) {
+        await fetch(`/deportes/${idDeporteEditar}`, { method:'PUT', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) });
+    } else {
+        await fetch('/deportes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) });
+    }
+    
+    listarDeportes(); 
+    limpiarFormDeporte();
+}
+
 async function toggleEstadoDeporte(id, nuevoEstado) { if(!confirm(`¿Seguro?`)) return; await fetch(`/deportes/${id}/estado`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ estado: nuevoEstado }) }); listarDeportes(); }
-async function crearDeporte() { const n = document.getElementById('dep-nombre').value, i = document.getElementById('dep-imagen').value, c = usuarioActual.rol === 'SYSADMIN' ? document.getElementById('dep-club').value : usuarioActual.club_id; if(!n || !c) return alert("Faltan datos"); await fetch('/deportes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) }); listarDeportes(); document.getElementById('dep-nombre').value=''; document.getElementById('dep-imagen').value=''; }
 
+async function listarDeportes() { 
+    let url = usuarioActual.rol === 'SYSADMIN' ? '/deportes' : `/deportes/${usuarioActual.club_id}`; 
+    const res = await fetch(url, {headers:authH()}); 
+    const deps = await res.json(); 
+    document.getElementById('lista-deportes-db').innerHTML = deps.map(d => `
+        <div class="p-3 bg-white rounded-2xl mb-2 flex justify-between items-center border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-3">
+                <img src="${d.imagen || 'https://via.placeholder.com/50'}" class="w-8 h-8 rounded-lg object-cover ${d.estado === 'INACTIVO' ? 'grayscale opacity-50' : ''}">
+                <div>
+                    <b class="text-xs md:text-sm ${d.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800'}">${d.nombre}</b>
+                    ${usuarioActual.rol === 'SYSADMIN' && d.club_nombre ? `<p class="text-[9px] text-slate-400 uppercase tracking-widest">${d.club_nombre}</p>` : ''}
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="abrirModalEditarDeporte(${d.id}, '${d.nombre.replace(/'/g, "\\'")}', '${d.imagen}', ${d.club_id})" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1.5 rounded-lg font-black hover:bg-blue-50 hover:text-blue-600 transition-colors">✏️</button>
+                ${usuarioActual.rol === 'SYSADMIN' ? `<button onclick="toggleEstadoDeporte(${d.id}, '${d.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'})" class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest transition-colors ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">${d.estado === 'ACTIVO' ? 'ON' : 'OFF'}</button>` : `<span class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${d.estado}</span>`}
+            </div>
+        </div>
+    `).join(''); 
+}
+
+// =========================================================
+// RESTO DEL CÓDIGO (USUARIOS Y MOVIMIENTOS)
+// =========================================================
 async function abrirModalUsuarios() { const selRol = document.getElementById('user-rol'); if(usuarioActual.rol === 'SYSADMIN') { selRol.innerHTML = `<option value="CLUBADMIN">PRESIDENTE DE CLUB</option><option value="SPORTADMIN">ADMIN SUBCOMISIÓN</option><option value="CAJERO">CAJERO</option>`; const res = await fetch('/clubes', {headers:authH()}); const clubes = await res.json(); document.getElementById('user-club').innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); } else if(usuarioActual.rol === 'CLUBADMIN') { selRol.innerHTML = `<option value="SPORTADMIN">ADMIN SUBCOMISIÓN</option><option value="CAJERO">CAJERO</option>`; document.getElementById('user-club').innerHTML = `<option value="${usuarioActual.club_id}">${usuarioActual.club_nombre}</option>`; } else if(usuarioActual.rol === 'SPORTADMIN') { selRol.innerHTML = '<option value="CAJERO">CAJERO</option>'; } await adaptarFormUsuario(); listarUsuarios(); abrirModal('modal-usuarios'); }
 async function adaptarFormUsuario() { const rolSel = document.getElementById('user-rol').value; const selClub = document.getElementById('user-club'); const lblClub = document.getElementById('label-club'); const selDep = document.getElementById('user-deporte'); const lblDep = document.getElementById('label-deporte'); if(usuarioActual.rol === 'SYSADMIN') { selClub.classList.remove('hidden'); lblClub.classList.remove('hidden'); } else { selClub.classList.add('hidden'); lblClub.classList.add('hidden'); } if(rolSel === 'CLUBADMIN') { selDep.classList.add('hidden'); lblDep.classList.add('hidden'); } else { if(usuarioActual.rol === 'SPORTADMIN') { selDep.classList.add('hidden'); lblDep.classList.add('hidden'); selDep.innerHTML = `<option value="${usuarioActual.deporte_id}"></option>`; } else { selDep.classList.remove('hidden'); lblDep.classList.remove('hidden'); await cargarDeportesEnSelect(); } } }
 async function cargarDeportesEnSelect() { const cid = document.getElementById('user-club').value || usuarioActual.club_id; if(!cid) return; const res = await fetch(`/deportes/${cid}`, {headers:authH()}); const deps = await res.json(); const selDep = document.getElementById('user-deporte'); if(deps.length === 0) selDep.innerHTML = '<option value="">-- Sin deportes --</option>'; else selDep.innerHTML = deps.map(d => `<option value="${d.id}">${d.nombre}</option>`).join(''); }
@@ -485,9 +611,6 @@ function generarTicketVenta() {
     htmlTicket += `<div style="margin-top:10px; text-align:center;"><h3 style="margin:0; font-size:14px; font-weight:bold;">${usuarioActual.club_nombre}</h3><p style="margin:0; font-size:10px;">${usuarioActual.deporte_nombre}</p></div><div style="margin-top:10px; font-size:11px;"><p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p><p style="margin:2px 0;"><b>PAGO:</b> ${metodoSeleccionado.toUpperCase()}</p><p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p></div><div style="border-top:2px solid #000; margin-top:10px; padding-top:5px; display:flex; justify-content:space-between; font-size:18px; font-weight:900;"><span>TOTAL</span><span>$${totalGeneral}</span></div><p style="text-align:center; font-size:9px; margin-top:20px;">Válido únicamente para la fecha de emisión.</p>`; t.style.display = 'block'; t.innerHTML = htmlTicket; 
 }
 
-// =========================================================
-// MÓDULO DE SALIDAS (GASTOS vs RETIROS) CON TICKET
-// =========================================================
 function abrirModalGasto() { 
     if(!cajaActualId) return alert("Abre caja primero"); 
     document.getElementById('gasto-desc').value=''; 
@@ -500,91 +623,41 @@ async function guardarGasto() {
     const d = document.getElementById('gasto-desc').value;
     const m = document.getElementById('gasto-monto').value; 
     const imprimir = document.getElementById('gasto-imprimir').checked;
-    
-    // Leemos el radio button seleccionado
     const tipoSeleccionado = document.querySelector('input[name="gasto_tipo"]:checked').value;
 
     if(!d || !m) return alert("Completa el concepto y el monto."); 
-    
     try {
         const res = await fetch('/gastos', { 
             method: 'POST', headers: authJsonH(), 
-            body: JSON.stringify({ 
-                descripcion: d, 
-                monto: m, 
-                tipo: tipoSeleccionado, 
-                caja_id: cajaActualId, 
-                club_id: usuarioActual.club_id, 
-                deporte_id: usuarioActual.deporte_id 
-            }) 
+            body: JSON.stringify({ descripcion: d, monto: m, tipo: tipoSeleccionado, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) 
         }); 
         const data = await res.json();
-        
-        if(data.success) {
-            cerrarModalGenerico('modal-gasto'); 
-            cargarHistoriales(); 
-            if(imprimir) imprimirTicketSalida(d, m, tipoSeleccionado);
-        } else { alert("Error al registrar"); }
+        if(data.success) { cerrarModalGenerico('modal-gasto'); cargarHistoriales(); if(imprimir) imprimirTicketSalida(d, m, tipoSeleccionado); } 
+        else { alert("Error al registrar"); }
     } catch (e) { alert("Error de conexión"); }
 }
 
 function imprimirTicketSalida(concepto, monto, tipo) {
-    const t = document.getElementById('ticket-impresion'); 
-    const fechaStr = new Date().toLocaleString('es-AR'); 
-    
+    const t = document.getElementById('ticket-impresion'); const fechaStr = new Date().toLocaleString('es-AR'); 
     let tituloTicket = tipo === 'GASTO' ? 'COMPROBANTE DE COMPRA / GASTO' : 'COMPROBANTE DE RETIRO';
-
-    let htmlTicket = `
-        <div style="text-align:center; margin-bottom:10px;">
-            <h3 style="margin:0; font-size:14px; font-weight:900;">${tituloTicket}</h3>
-            <p style="margin:0; font-size:10px;">${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}</p>
-        </div>
-        <div style="border-top:1px dashed #000; border-bottom:1px dashed #000; padding:10px 0; margin-bottom:10px; font-size:12px;">
-            <p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p>
-            <p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p>
-            <p style="margin:2px 0;"><b>CONCEPTO:</b> ${concepto.toUpperCase()}</p>
-        </div>
-        <div style="text-align:center; font-size:24px; font-weight:900; margin:15px 0;">
-            -$${monto}
-        </div>
-        <div style="margin-top:40px; text-align:center; font-size:10px;">
-            ___________________________<br>
-            Firma de quien recibe
-        </div>
-        <div style="margin-top:30px; text-align:center; font-size:10px;">
-            ___________________________<br>
-            Firma del Cajero
-        </div>
-    `; 
-    t.style.display = 'block'; t.innerHTML = htmlTicket; 
-    setTimeout(() => { window.print(); t.style.display = 'none'; document.getElementById('buscador').focus(); }, 500); 
+    let htmlTicket = `<div style="text-align:center; margin-bottom:10px;"><h3 style="margin:0; font-size:14px; font-weight:900;">${tituloTicket}</h3><p style="margin:0; font-size:10px;">${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}</p></div><div style="border-top:1px dashed #000; border-bottom:1px dashed #000; padding:10px 0; margin-bottom:10px; font-size:12px;"><p style="margin:2px 0;"><b>FECHA:</b> ${fechaStr}</p><p style="margin:2px 0;"><b>CAJERO:</b> ${usuarioActual.nombre}</p><p style="margin:2px 0;"><b>CONCEPTO:</b> ${concepto.toUpperCase()}</p></div><div style="text-align:center; font-size:24px; font-weight:900; margin:15px 0;">-$${monto}</div><div style="margin-top:40px; text-align:center; font-size:10px;">___________________________<br>Firma de quien recibe</div><div style="margin-top:30px; text-align:center; font-size:10px;">___________________________<br>Firma del Cajero</div>`; 
+    t.style.display = 'block'; t.innerHTML = htmlTicket; setTimeout(() => { window.print(); t.style.display = 'none'; document.getElementById('buscador').focus(); }, 500); 
 }
 
 async function cargarHistoriales() { 
     if(!cajaActualId) return; 
     const resV = await fetch(`/historial-ventas/${cajaActualId}`, {headers:authH()}); const resG = await fetch(`/historial-gastos/${cajaActualId}`, {headers:authH()}); 
     const vts = await resV.json(); const gst = await resG.json(); 
-    
     document.getElementById('tabla-ventas').innerHTML = vts.slice(0,5).map(v => { let badgeMovil = v.codigo_retiro ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-[9px] ml-2 font-black border border-blue-200 shadow-sm whitespace-nowrap">📱 MÓVIL (${v.codigo_retiro})</span>` : ''; return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm text-xs"><div class="flex items-center flex-wrap gap-1"><b>$${v.total}</b> ${badgeMovil}</div><span class="text-slate-400 font-bold shrink-0">${v.metodoPago}</span></div>`; }).join('') || '<p class="text-xs text-slate-400 italic">No hay ventas en este turno.</p>'; 
-    
-    document.getElementById('tabla-gastos').innerHTML = gst.slice(0,5).map(g => {
-        let badgeTipo = g.tipo === 'GASTO' ? '🛒 GASTO' : '🏦 RETIRO';
-        return `<div class="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100 shadow-sm text-rose-900 text-xs"><div class="flex flex-col"><b>-$${g.monto}</b><span class="text-[9px] uppercase tracking-widest font-black text-rose-500">${badgeTipo}</span></div><span class="text-right truncate ml-2">${g.descripcion}</span></div>`;
-    }).join('') || '<p class="text-xs text-slate-400 italic">No hay salidas registradas.</p>'; 
+    document.getElementById('tabla-gastos').innerHTML = gst.slice(0,5).map(g => { let badgeTipo = g.tipo === 'GASTO' ? '🛒 GASTO' : '🏦 RETIRO'; return `<div class="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100 shadow-sm text-rose-900 text-xs"><div class="flex flex-col"><b>-$${g.monto}</b><span class="text-[9px] uppercase tracking-widest font-black text-rose-500">${badgeTipo}</span></div><span class="text-right truncate ml-2">${g.descripcion}</span></div>`; }).join('') || '<p class="text-xs text-slate-400 italic">No hay salidas registradas.</p>'; 
 }
 
 async function verCierreCaja() { 
     const res = await fetch(`/resumen-caja/${cajaActualId}`, {headers:authH()}); const data = await res.json(); 
     let totalEfectivo = 0; let totalTransferencia = 0; data.ventas.forEach(v => { if(v.metodo === 'Efectivo') totalEfectivo += v.total; if(v.metodo === 'Transferencia') totalTransferencia += v.total; }); 
-    
-    const apertura = data.apertura || 0; 
-    const gastos = data.gastos || 0; 
-    const retiros = data.retiros || 0;
-    
-    // El efectivo de la caja baja tanto si compras hielo (Gasto) como si le das la plata a secretaria (Retiro)
+    const apertura = data.apertura || 0; const gastos = data.gastos || 0; const retiros = data.retiros || 0;
     const efectivoEnCaja = (apertura + totalEfectivo) - gastos - retiros; 
     const totalFacturado = totalEfectivo + totalTransferencia; 
-    
     ticketCierreDatos = { apertura, totalEfectivo, gastos, retiros, efectivoEnCaja, totalTransferencia, totalFacturado };
 
     document.getElementById('detalle-cierre').innerHTML = `<h3 class="font-black text-center mb-6 text-2xl text-slate-800 tracking-tight">Cierre de Turno</h3><div class="space-y-3 mb-4 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200"><div class="flex justify-between items-center text-xs md:text-sm font-bold text-slate-500 pb-2 border-b border-slate-200"><span>Fondo Inicial de Caja</span><span>$${apertura}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-blue-600"><span>+ Ventas Efectivo</span><span>$${totalEfectivo}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-rose-500 pb-2 border-b border-slate-200"><span>- Compras (Gastos)</span><span>-$${gastos}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-rose-500 pb-2 border-b border-slate-200"><span>- Retiros a Tesorería</span><span>-$${retiros}</span></div><div class="flex justify-between items-center text-lg md:text-xl font-black text-emerald-600 pt-2"><span>EFECTIVO EN CAJÓN</span><span>$${efectivoEnCaja}</span></div></div><div class="space-y-2 mb-6 bg-slate-100 p-4 rounded-xl border border-slate-200"><div class="flex justify-between items-center text-[10px] md:text-xs font-bold text-slate-500"><span>Ventas por Transferencia</span><span>$${totalTransferencia}</span></div><div class="flex justify-between items-center text-sm font-black text-slate-800 pt-2 border-t border-slate-300"><span>TOTAL FACTURADO</span><span>$${totalFacturado}</span></div></div>`; 
