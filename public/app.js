@@ -11,7 +11,6 @@ let categoriaActiva = 'TODOS';
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
 let ticketCierreDatos = {};
-let qrcodeGenerador = null; 
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -189,7 +188,6 @@ async function abrirBuzonSugerencias() {
     const contenedorQR = document.getElementById('qr-buzon-container');
     contenedorQR.innerHTML = ''; 
     const urlPublica = `${window.location.origin}/feedback.html?deporte=${usuarioActual.deporte_id}`;
-    
     new QRCode(contenedorQR, { text: urlPublica, width: 150, height: 150, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
     await cargarComentariosBuzon();
     abrirModal('modal-buzon');
@@ -208,9 +206,7 @@ function imprimirCartelBuzon() {
             <h2 style="font-size: 22px; color: #4f46e5; margin: 0 0 30px 0; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2>
             <div style="font-size: 70px; margin-bottom: 0;">📥</div>
             <h1 style="font-size: 50px; font-weight: 900; margin: 0 0 15px 0; color: #1e293b;">Buzón de Sugerencias</h1>
-            <p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">
-                Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.
-            </p>
+            <p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.</p>
             <div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;"><img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" /></div>
             <p style="font-size: 16px; font-weight: bold; color: #94a3b8; margin: 0;">¡Gracias por ser parte de nuestra comunidad!</p>
         </div>
@@ -280,50 +276,76 @@ async function abrirCaja() { const m = document.getElementById('monto-apertura')
 function filtrarCategoria(cat) { categoriaActiva = cat; ['TODOS', 'COMIDA', 'BEBIDA', 'OTROS'].forEach(c => { const btn = document.getElementById(`cat-${c}`); if(c === cat) btn.className = "shrink-0 bg-slate-800 text-white px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm transition-all text-[9px] lg:text-xs"; else btn.className = "shrink-0 bg-white text-slate-500 border border-slate-200 px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all text-[9px] lg:text-xs uppercase"; }); aplicarFiltros(); document.getElementById('buscador').focus(); }
 function aplicarFiltros() { const txt = document.getElementById('buscador').value.toLowerCase(); const filtrados = listaProductosGlobal.filter(p => { const matchTxt = p.nombre.toLowerCase().includes(txt); const matchCat = categoriaActiva === 'TODOS' || p.categoria === categoriaActiva; return matchTxt && matchCat; }); renderizarProductos(filtrados); }
 async function cargarProductos() { const res = await fetch(`/productos/${usuarioActual.deporte_id}`, {headers:authH()}); listaProductosGlobal = await res.json(); aplicarFiltros(); cargarHistoriales(); renderizarProductosModal(); }
-function renderizarProductos(p) { document.getElementById('grilla-productos').innerHTML = p.map(x => { let badge = ''; if(x.categoria === 'COMIDA') badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-amber-400 text-amber-950 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🍔 Comida</span>'; else if(x.categoria === 'BEBIDA') badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-cyan-400 text-cyan-950 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🥤 Bebida</span>'; else badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-slate-200 text-slate-700 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🛒 Otros</span>'; return `<div class="product-card cursor-pointer group select-none relative" onclick="agregarAlCarrito(${x.id}, '${x.nombre}', ${x.precio}, ${x.stock}, '${x.categoria}')">${badge}<button onclick="event.stopPropagation(); abrirModalEditar(${x.id})" class="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-400 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-lg shadow-sm z-30 hover:bg-blue-50 hover:text-blue-600 transition-colors border border-slate-100 opacity-0 group-hover:opacity-100" title="Editar Producto"><span class="text-[10px] lg:text-sm">✏️</span></button><div class="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center backdrop-blur-[1px] pointer-events-none"><span class="bg-blue-600 text-white font-black text-[10px] lg:text-xs px-4 py-2 lg:px-5 lg:py-3 rounded-xl lg:rounded-2xl shadow-xl translate-y-4 group-hover:translate-y-0 transition-all uppercase tracking-widest">+ AGREGAR</span></div><img src="${x.imagen || 'https://via.placeholder.com/200'}" class="w-full h-20 lg:h-28 object-cover border-b pointer-events-none"><div class="p-3 lg:p-4 relative z-0"><h3 class="font-bold text-slate-800 text-[10px] lg:text-xs mb-1 lg:mb-2 h-7 lg:h-8 overflow-hidden pointer-events-none leading-tight">${x.nombre}</h3><div class="flex justify-between items-end pointer-events-none"><span class="text-sm lg:text-xl font-black text-blue-600 leading-none">$${x.precio}</span><span class="text-[8px] lg:text-[9px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-md">Stock:${x.stock}</span></div></div></div>` }).join(''); }
+
+// FUNCIÓN DE RENDERIZADO SIMPLIFICADA
+function renderizarProductos(p) { 
+    document.getElementById('grilla-productos').innerHTML = p.map(x => { 
+        let badge = ''; 
+        if(x.categoria === 'COMIDA') badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-amber-400 text-amber-950 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🍔 Comida</span>'; 
+        else if(x.categoria === 'BEBIDA') badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-cyan-400 text-cyan-950 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🥤 Bebida</span>'; 
+        else badge = '<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-slate-200 text-slate-700 px-1.5 py-0.5 lg:px-2 lg:py-1 text-[8px] lg:text-[9px] font-black rounded-md lg:rounded-lg uppercase z-20 shadow-sm pointer-events-none">🛒 Otros</span>'; 
+        
+        return `<div class="product-card cursor-pointer group select-none relative" onclick="agregarAlCarrito(${x.id})">${badge}<button onclick="event.stopPropagation(); abrirModalEditar(${x.id})" class="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-400 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-lg shadow-sm z-30 hover:bg-blue-50 hover:text-blue-600 transition-colors border border-slate-100 opacity-0 group-hover:opacity-100" title="Editar Producto"><span class="text-[10px] lg:text-sm">✏️</span></button><div class="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center backdrop-blur-[1px] pointer-events-none"><span class="bg-blue-600 text-white font-black text-[10px] lg:text-xs px-4 py-2 lg:px-5 lg:py-3 rounded-xl lg:rounded-2xl shadow-xl translate-y-4 group-hover:translate-y-0 transition-all uppercase tracking-widest">+ AGREGAR</span></div><img src="${x.imagen || 'https://via.placeholder.com/200'}" class="w-full h-20 lg:h-28 object-cover border-b pointer-events-none bg-white"><div class="p-3 lg:p-4 relative z-0"><h3 class="font-bold text-slate-800 text-[10px] lg:text-xs mb-1 lg:mb-2 h-7 lg:h-8 overflow-hidden pointer-events-none leading-tight">${x.nombre}</h3><div class="flex justify-between items-end pointer-events-none"><span class="text-sm lg:text-xl font-black text-blue-600 leading-none">$${x.precio}</span><span class="text-[8px] lg:text-[9px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-md">Stock:${x.stock}</span></div></div></div>`; 
+    }).join(''); 
+}
 function renderizarProductosModal() { const lista = document.getElementById('lista-productos-modal'); if(!lista) return; if(listaProductosGlobal.length === 0) { lista.innerHTML = '<p class="text-xs text-slate-400 italic">No hay productos creados aún.</p>'; return; } lista.innerHTML = listaProductosGlobal.map(p => `<div class="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 transition-colors group" onclick="abrirModalEditar(${p.id})"><div class="flex items-center gap-3"><img src="${p.imagen || 'https://via.placeholder.com/100'}" class="w-10 h-10 rounded-lg object-cover bg-slate-50"><div><p class="font-bold text-xs text-slate-800 group-hover:text-blue-600 transition-colors">${p.nombre}</p><p class="text-[10px] text-slate-500 mt-0.5"><b class="text-blue-600 font-black">$${p.precio}</b> <span class="mx-1">|</span> Stock: <b>${p.stock}</b></p></div></div><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded-md uppercase font-black tracking-widest">${p.categoria}</span></div>`).join(''); }
 
 function limpiarFormularioProducto() { idProductoEditar = null; document.getElementById('titulo-modal-producto').innerText = "Nuevo Producto"; document.getElementById('prod-nombre').value = ''; document.getElementById('prod-precio').value = ''; document.getElementById('prod-stock').value = ''; document.getElementById('prod-imagen-url').value = ''; document.getElementById('prod-imagen-file').value = ''; document.getElementById('prod-categoria').value = 'OTROS'; document.getElementById('btn-eliminar-prod').classList.add('hidden'); document.getElementById('prod-nombre').focus(); }
 function abrirModalNuevo() { limpiarFormularioProducto(); abrirModal('modal-producto'); }
 function abrirModalEditar(id) { const p = listaProductosGlobal.find(x => x.id === id); if(!p) return; idProductoEditar = id; document.getElementById('titulo-modal-producto').innerText = "Editar Producto"; document.getElementById('prod-nombre').value = p.nombre; document.getElementById('prod-precio').value = p.precio; document.getElementById('prod-stock').value = p.stock; document.getElementById('prod-imagen-url').value = ''; document.getElementById('prod-imagen-file').value = ''; document.getElementById('prod-categoria').value = p.categoria; document.getElementById('btn-eliminar-prod').classList.remove('hidden'); abrirModal('modal-producto'); }
 
-// 📦 LÓGICA DE GUARDADO DE PRODUCTOS (SOPORTA FOTOS BASE64 MULTIPART)
 async function guardarProducto() { 
-    const n = document.getElementById('prod-nombre').value;
-    const p = document.getElementById('prod-precio').value;
-    const s = document.getElementById('prod-stock').value;
-    const c = document.getElementById('prod-categoria').value;
-    const urlInput = document.getElementById('prod-imagen-url').value;
-    const fileInput = document.getElementById('prod-imagen-file');
-
+    const n = document.getElementById('prod-nombre').value, p = document.getElementById('prod-precio').value, s = document.getElementById('prod-stock').value, c = document.getElementById('prod-categoria').value, urlInput = document.getElementById('prod-imagen-url').value, fileInput = document.getElementById('prod-imagen-file');
     if(!n || !p || !s) return alert("⚠️ Completa Nombre, Precio y Stock."); 
-    
-    // Usamos FormData porque enviamos archivos
-    const formData = new FormData();
-    formData.append('nombre', n);
-    formData.append('precio', p);
-    formData.append('stock', s);
-    formData.append('categoria', c);
-    formData.append('imagen_url', urlInput);
+    const formData = new FormData(); formData.append('nombre', n); formData.append('precio', p); formData.append('stock', s); formData.append('categoria', c); formData.append('imagen_url', urlInput);
     if(fileInput.files.length > 0) formData.append('imagen_file', fileInput.files[0]);
-    
-    if (!idProductoEditar) {
-        formData.append('club_id', usuarioActual.club_id);
-        formData.append('deporte_id', usuarioActual.deporte_id);
-    }
-
-    try {
-        if (idProductoEditar) { await fetch(`/productos/${idProductoEditar}`, { method: 'PUT', headers: authH(), body: formData }); } 
-        else { await fetch('/productos', { method: 'POST', headers: authH(), body: formData }); } 
-        await cargarProductos(); 
-        limpiarFormularioProducto(); 
-    } catch(e) { alert("Error guardando producto."); }
+    if (!idProductoEditar) { formData.append('club_id', usuarioActual.club_id); formData.append('deporte_id', usuarioActual.deporte_id); }
+    try { if (idProductoEditar) { await fetch(`/productos/${idProductoEditar}`, { method: 'PUT', headers: authH(), body: formData }); } else { await fetch('/productos', { method: 'POST', headers: authH(), body: formData }); } await cargarProductos(); limpiarFormularioProducto(); } catch(e) { alert("Error guardando producto."); }
 }
-
 async function eliminarProducto() { if(!idProductoEditar) return; if(confirm("⚠️ ¿Eliminar permanentemente?")) { await fetch(`/productos/${idProductoEditar}`, { method: 'DELETE', headers: authH() }); await cargarProductos(); limpiarFormularioProducto(); } }
 
-function agregarAlCarrito(id, nombre, precio, stock, categoria) { const item = carrito.find(x => x.id === id); if(item) { if(item.cantidad < stock) item.cantidad++; else alert("Sin stock suficiente"); } else { if(stock > 0) carrito.push({id, nombre, precio, cantidad: 1, stockMax: stock, categoria: categoria || 'OTROS'}); else alert("Sin stock"); } actualizarCarrito(); }
-function actualizarCarrito() { const lista = document.getElementById('lista-carrito'); let t = 0; if(!carrito.length) { lista.innerHTML = '<div class="h-full flex flex-col items-center justify-center opacity-30 mt-2 lg:mt-6"><span class="text-3xl lg:text-4xl mb-1 lg:mb-2">🛒</span><p class="font-bold text-[10px] lg:text-sm">Carrito Vacío</p></div>'; document.getElementById('total-carrito').innerText = '$0'; document.getElementById('btn-confirmar').disabled = true; totalCarritoValor = 0; gestionarCalculadoraVuelto(); return; } document.getElementById('btn-confirmar').disabled = false; lista.innerHTML = carrito.map((x, i) => { t += x.precio * x.cantidad; let icono = x.categoria === 'COMIDA' ? '🍔' : (x.categoria === 'BEBIDA' ? '🥤' : '🏷️'); return `<div class="flex justify-between items-center bg-white p-1.5 lg:p-2.5 rounded-xl border border-slate-200 shadow-sm gap-2"><div class="flex gap-1.5 lg:gap-2 items-center min-w-0 flex-1"><span class="text-xs lg:text-base bg-slate-50 p-1 lg:p-1.5 rounded-lg border">${icono}</span><div class="min-w-0 flex-1"><p class="font-bold text-[9px] lg:text-[11px] truncate text-slate-800 leading-tight">${x.nombre}</p><p class="text-blue-600 font-black text-[11px] lg:text-sm leading-tight">$${x.precio}</p></div></div><div class="flex gap-1 items-center bg-slate-100 p-0.5 lg:p-1 rounded-lg border border-slate-200 shrink-0"><button onclick="cambiarCantidad(${i},-1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-rose-500 transition-colors flex items-center justify-center">-</button><span class="font-black text-[10px] lg:text-xs w-4 lg:w-5 text-center select-none">${x.cantidad}</span><button onclick="cambiarCantidad(${i},1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-emerald-500 transition-colors flex items-center justify-center">+</button></div></div>`; }).join(''); totalCarritoValor = t; document.getElementById('total-carrito').innerText = `$${t}`; gestionarCalculadoraVuelto(); }
+// LÓGICA DE CARRITO ACTUALIZADA (AHORA TOMA LA IMAGEN DEL PRODUCTO)
+function agregarAlCarrito(id) { 
+    const p = listaProductosGlobal.find(x => x.id === id);
+    if(!p) return;
+    const item = carrito.find(x => x.id === id); 
+    if(item) { 
+        if(item.cantidad < p.stock) item.cantidad++; 
+        else alert("Sin stock suficiente"); 
+    } else { 
+        if(p.stock > 0) carrito.push({id: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1, stockMax: p.stock, categoria: p.categoria || 'OTROS', imagen: p.imagen}); 
+        else alert("Sin stock"); 
+    } 
+    actualizarCarrito(); 
+}
+
+function actualizarCarrito() { 
+    const lista = document.getElementById('lista-carrito'); 
+    let t = 0; 
+    if(!carrito.length) { 
+        lista.innerHTML = '<div class="h-full flex flex-col items-center justify-center opacity-30 mt-2 lg:mt-6"><span class="text-3xl lg:text-4xl mb-1 lg:mb-2">🛒</span><p class="font-bold text-[10px] lg:text-sm">Carrito Vacío</p></div>'; 
+        document.getElementById('total-carrito').innerText = '$0'; 
+        document.getElementById('btn-confirmar').disabled = true; 
+        totalCarritoValor = 0; 
+        gestionarCalculadoraVuelto(); 
+        return; 
+    } 
+    document.getElementById('btn-confirmar').disabled = false; 
+    
+    // RENDERIZADO DEL ITEM EN EL CARRITO CON IMAGEN
+    lista.innerHTML = carrito.map((x, i) => { 
+        t += x.precio * x.cantidad; 
+        let imgRender = x.imagen ? 
+            `<img src="${x.imagen}" class="w-8 h-8 lg:w-10 lg:h-10 rounded-lg object-cover border border-slate-200 shrink-0 bg-white">` : 
+            `<span class="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-50 rounded-lg border border-slate-200 text-xs lg:text-base shrink-0">${x.categoria === 'COMIDA' ? '🍔' : (x.categoria === 'BEBIDA' ? '🥤' : '🏷️')}</span>`;
+
+        return `<div class="flex justify-between items-center bg-white p-1.5 lg:p-2.5 rounded-xl border border-slate-200 shadow-sm gap-2"><div class="flex gap-1.5 lg:gap-2 items-center min-w-0 flex-1">${imgRender}<div class="min-w-0 flex-1"><p class="font-bold text-[9px] lg:text-[11px] truncate text-slate-800 leading-tight">${x.nombre}</p><p class="text-blue-600 font-black text-[11px] lg:text-sm leading-tight">$${x.precio}</p></div></div><div class="flex gap-1 items-center bg-slate-100 p-0.5 lg:p-1 rounded-lg border border-slate-200 shrink-0"><button onclick="cambiarCantidad(${i},-1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-rose-500 transition-colors flex items-center justify-center">-</button><span class="font-black text-[10px] lg:text-xs w-4 lg:w-5 text-center select-none">${x.cantidad}</span><button onclick="cambiarCantidad(${i},1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-emerald-500 transition-colors flex items-center justify-center">+</button></div></div>`; 
+    }).join(''); 
+    totalCarritoValor = t; 
+    document.getElementById('total-carrito').innerText = `$${t}`; 
+    gestionarCalculadoraVuelto(); 
+}
+
 function cambiarCantidad(i, d) { if(d > 0 && carrito[i].cantidad >= carrito[i].stockMax) return; carrito[i].cantidad += d; if(carrito[i].cantidad <= 0) carrito.splice(i, 1); actualizarCarrito(); }
 
 function gestionarCalculadoraVuelto() { const panel = document.getElementById('panel-vuelto'); if (totalCarritoValor > 0 && metodoSeleccionado === 'Efectivo') { panel.classList.remove('hidden'); panel.classList.add('flex'); let sugerencias = new Set(); let redondeoMil = Math.ceil(totalCarritoValor / 1000) * 1000; if(redondeoMil >= totalCarritoValor) sugerencias.add(redondeoMil); if(totalCarritoValor <= 2000) sugerencias.add(2000); if(totalCarritoValor <= 5000) sugerencias.add(5000); if(totalCarritoValor <= 10000) sugerencias.add(10000); if(totalCarritoValor <= 20000) sugerencias.add(20000); let htmlBotones = Array.from(sugerencias).sort((a,b)=>a-b).map(b => `<button onclick="setPagaCon(${b})" class="bg-white border border-slate-200 px-1.5 py-0.5 lg:px-2 lg:py-1 rounded border-b-2 font-black text-[8px] lg:text-[9px] text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors shadow-sm">$${b}</button>`).join(''); document.getElementById('botones-billetes').innerHTML = htmlBotones; calcularVuelto(document.getElementById('input-paga-con').value); } else { panel.classList.add('hidden'); panel.classList.remove('flex'); } }
