@@ -94,9 +94,7 @@ async function descargarBackup() {
         if (!res.ok) throw new Error("No autorizado");
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
+        const a = document.createElement('a'); a.style.display = 'none'; a.href = url;
         a.download = `buffet_backup_${new Date().toISOString().split('T')[0]}.db`;
         document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url);
     } catch (e) { alert("Error al descargar el backup: " + e.message); }
@@ -115,8 +113,7 @@ async function verDashboardSport(overrideDeporteId = null, overrideNombre = null
     document.getElementById('panel-despacho').classList.add('hidden');
     ['btn-cierre', 'btn-gastos', 'btn-nuevo-prod'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('panel-dashboard').classList.remove('hidden');
-    const divContenido = document.getElementById('contenido-dashboard');
-    divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas y billeteras...</p>';
+    const divContenido = document.getElementById('contenido-dashboard'); divContenido.innerHTML = '<p class="text-center text-slate-400 font-bold mt-10">Calculando finanzas y billeteras...</p>';
     const targetDeporteId = overrideDeporteId || usuarioActual.deporte_id;
     const targetNombre = overrideNombre || 'Tesorería General';
     const isAuditor = overrideDeporteId !== null;
@@ -185,30 +182,25 @@ async function cargarDashboard(clubIdToView = null) {
 }
 
 async function abrirBuzonSugerencias() {
-    const contenedorQR = document.getElementById('qr-buzon-container');
-    contenedorQR.innerHTML = ''; 
+    const contenedorQR = document.getElementById('qr-buzon-container'); contenedorQR.innerHTML = ''; 
     const urlPublica = `${window.location.origin}/feedback.html?deporte=${usuarioActual.deporte_id}`;
     new QRCode(contenedorQR, { text: urlPublica, width: 150, height: 150, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
-    await cargarComentariosBuzon();
-    abrirModal('modal-buzon');
+    await cargarComentariosBuzon(); abrirModal('modal-buzon');
 }
 
 function imprimirCartelBuzon() {
     const canvas = document.querySelector('#qr-buzon-container canvas');
     if (!canvas) { alert("Aguarde un segundo a que se genere el código QR."); return; }
-    const qrDataUrl = canvas.toDataURL("image/png");
-    const cartel = document.getElementById('cartel-impresion');
+    const qrDataUrl = canvas.toDataURL("image/png"); const cartel = document.getElementById('cartel-impresion');
     cartel.innerHTML = `<div style="text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; width: 100%; max-width: 800px; padding: 20px; box-sizing: border-box;"><h1 style="font-size: 40px; font-weight: 900; margin: 0 0 5px 0; color: #0f172a;">${usuarioActual.club_nombre}</h1><h2 style="font-size: 22px; color: #4f46e5; margin: 0 0 30px 0; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2><div style="font-size: 70px; margin-bottom: 0;">📥</div><h1 style="font-size: 50px; font-weight: 900; margin: 0 0 15px 0; color: #1e293b;">Buzón de Sugerencias</h1><p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.</p><div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;"><img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" /></div><p style="font-size: 16px; font-weight: bold; color: #94a3b8; margin: 0;">¡Gracias por ser parte de nuestra comunidad!</p></div>`;
     document.body.classList.add('printing-poster');
     setTimeout(() => { window.print(); document.body.classList.remove('printing-poster'); cartel.innerHTML = ''; }, 300);
 }
 
 async function cargarComentariosBuzon() {
-    const lista = document.getElementById('lista-comentarios');
-    lista.innerHTML = '<p class="text-slate-400 text-sm">Cargando mensajes...</p>';
+    const lista = document.getElementById('lista-comentarios'); lista.innerHTML = '<p class="text-slate-400 text-sm">Cargando mensajes...</p>';
     try {
-        const res = await fetch(`/comentarios/${usuarioActual.deporte_id}`, { headers: authH() });
-        const msjs = await res.json();
+        const res = await fetch(`/comentarios/${usuarioActual.deporte_id}`, { headers: authH() }); const msjs = await res.json();
         if(msjs.length === 0) { lista.innerHTML = '<div class="text-center py-10 opacity-50"><span class="text-4xl block mb-2">📭</span><p class="font-bold text-slate-500">Buzón vacío</p></div>'; return; }
         lista.innerHTML = msjs.map(m => `<div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 relative group"><button onclick="eliminarComentario(${m.id})" class="absolute top-2 right-2 text-rose-300 hover:text-rose-600 font-black px-2 hidden group-hover:block transition-colors">X</button><div class="flex justify-between items-center mb-2"><span class="font-black text-slate-700 text-sm">👤 ${m.autor}</span><span class="text-[9px] text-slate-400 font-bold">${m.fecha}</span></div><p class="text-slate-600 text-sm italic">"${m.mensaje}"</p></div>`).join('');
     } catch (e) { lista.innerHTML = '<p class="text-rose-500 text-sm">Error de conexión.</p>'; }
@@ -319,10 +311,7 @@ function actualizarCarrito() {
     
     lista.innerHTML = carrito.map((x, i) => { 
         t += x.precio * x.cantidad; 
-        let imgRender = x.imagen ? 
-            `<img src="${x.imagen}" class="w-8 h-8 lg:w-10 lg:h-10 rounded-lg object-cover border border-slate-200 shrink-0 bg-white">` : 
-            `<span class="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-50 rounded-lg border border-slate-200 text-xs lg:text-base shrink-0">${x.categoria === 'COMIDA' ? '🍔' : (x.categoria === 'BEBIDA' ? '🥤' : '🏷️')}</span>`;
-
+        let imgRender = x.imagen ? `<img src="${x.imagen}" class="w-8 h-8 lg:w-10 lg:h-10 rounded-lg object-cover border border-slate-200 shrink-0 bg-white">` : `<span class="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-50 rounded-lg border border-slate-200 text-xs lg:text-base shrink-0">${x.categoria === 'COMIDA' ? '🍔' : (x.categoria === 'BEBIDA' ? '🥤' : '🏷️')}</span>`;
         return `<div class="flex justify-between items-center bg-white p-1.5 lg:p-2.5 rounded-xl border border-slate-200 shadow-sm gap-2"><div class="flex gap-1.5 lg:gap-2 items-center min-w-0 flex-1">${imgRender}<div class="min-w-0 flex-1"><p class="font-bold text-[9px] lg:text-[11px] truncate text-slate-800 leading-tight">${x.nombre}</p><p class="text-blue-600 font-black text-[11px] lg:text-sm leading-tight">$${x.precio}</p></div></div><div class="flex gap-1 items-center bg-slate-100 p-0.5 lg:p-1 rounded-lg border border-slate-200 shrink-0"><button onclick="cambiarCantidad(${i},-1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-rose-500 transition-colors flex items-center justify-center">-</button><span class="font-black text-[10px] lg:text-xs w-4 lg:w-5 text-center select-none">${x.cantidad}</span><button onclick="cambiarCantidad(${i},1)" class="w-5 h-5 lg:w-6 lg:h-6 bg-white rounded-md shadow-sm font-black text-slate-600 hover:text-emerald-500 transition-colors flex items-center justify-center">+</button></div></div>`; 
     }).join(''); 
     totalCarritoValor = t; 
@@ -332,33 +321,132 @@ function actualizarCarrito() {
 
 function cambiarCantidad(i, d) { if(d > 0 && carrito[i].cantidad >= carrito[i].stockMax) return; carrito[i].cantidad += d; if(carrito[i].cantidad <= 0) carrito.splice(i, 1); actualizarCarrito(); }
 
-function gestionarCalculadoraVuelto() { const panel = document.getElementById('panel-vuelto'); if (totalCarritoValor > 0 && metodoSeleccionado === 'Efectivo') { panel.classList.remove('hidden'); panel.classList.add('flex'); let sugerencias = new Set(); let redondeoMil = Math.ceil(totalCarritoValor / 1000) * 1000; if(redondeoMil >= totalCarritoValor) sugerencias.add(redondeoMil); if(totalCarritoValor <= 2000) sugerencias.add(2000); if(totalCarritoValor <= 5000) sugerencias.add(5000); if(totalCarritoValor <= 10000) sugerencias.add(10000); if(totalCarritoValor <= 20000) sugerencias.add(20000); let htmlBotones = Array.from(sugerencias).sort((a,b)=>a-b).map(b => `<button onclick="setPagaCon(${b})" class="bg-white border border-slate-200 px-1.5 py-0.5 lg:px-2 lg:py-1 rounded border-b-2 font-black text-[8px] lg:text-[9px] text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors shadow-sm">$${b}</button>`).join(''); document.getElementById('botones-billetes').innerHTML = htmlBotones; calcularVuelto(document.getElementById('input-paga-con').value); } else { panel.classList.add('hidden'); panel.classList.remove('flex'); } }
-function setPagaCon(monto) { document.getElementById('input-paga-con').value = monto; calcularVuelto(monto); }
-function calcularVuelto(pagaCon) { const paga = parseInt(pagaCon) || 0; const vuelto = paga - totalCarritoValor; const label = document.getElementById('label-vuelto'); if (vuelto >= 0 && paga > 0) { label.innerText = `$${vuelto}`; label.classList.replace('text-rose-500', 'text-emerald-500'); } else { label.innerText = `$0`; label.classList.replace('text-emerald-500', 'text-rose-500'); } }
-function setMetodo(m) { metodoSeleccionado = m; document.getElementById('pago-efectivo').className = m === 'Efectivo' ? "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-[10px] lg:text-xs" : "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-[10px] lg:text-xs"; document.getElementById('pago-transf').className = m === 'Transferencia' ? "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-[10px] lg:text-xs" : "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-[10px] lg:text-xs"; gestionarCalculadoraVuelto(); document.getElementById('buscador').focus(); }
+// =========================================================
+// MODO RÁFAGA Y CALCULADORA INTELIGENTE
+// =========================================================
+function gestionarCalculadoraVuelto() { 
+    const panel = document.getElementById('panel-vuelto'); 
+    if (totalCarritoValor > 0 && metodoSeleccionado === 'Efectivo') { 
+        panel.classList.remove('hidden'); panel.classList.add('flex'); 
+        let sugerencias = new Set(); let redondeoMil = Math.ceil(totalCarritoValor / 1000) * 1000; 
+        if(redondeoMil >= totalCarritoValor) sugerencias.add(redondeoMil); 
+        if(totalCarritoValor <= 2000) sugerencias.add(2000); 
+        if(totalCarritoValor <= 5000) sugerencias.add(5000); 
+        if(totalCarritoValor <= 10000) sugerencias.add(10000); 
+        if(totalCarritoValor <= 20000) sugerencias.add(20000); 
+        let htmlBotones = Array.from(sugerencias).sort((a,b)=>a-b).map(b => `<button onclick="setPagaCon(${b})" class="bg-white border border-slate-200 px-1.5 py-0.5 lg:px-2 lg:py-1 rounded border-b-2 font-black text-[8px] lg:text-[9px] text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors shadow-sm">$${b}</button>`).join(''); 
+        document.getElementById('botones-billetes').innerHTML = htmlBotones; 
+        calcularVuelto(document.getElementById('input-paga-con').value); 
+    } else { panel.classList.add('hidden'); panel.classList.remove('flex'); } 
+}
 
-document.addEventListener('keydown', function(e) { const modales = ['modal-apertura', 'modal-clubes', 'modal-deportes', 'modal-usuarios', 'modal-producto', 'modal-gasto', 'modal-cierre', 'modal-movimiento', 'modal-qr', 'modal-buzon']; const algunModalAbierto = modales.some(id => document.getElementById(id) && document.getElementById(id).classList.contains('flex')); if(algunModalAbierto) return; if (e.key === 'F1') { e.preventDefault(); setMetodo('Efectivo'); } if (e.key === 'F2') { e.preventDefault(); setMetodo('Transferencia'); } if (e.key === 'Escape') { e.preventDefault(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); document.getElementById('buscador').focus(); } if (e.key === 'Enter') { if(document.activeElement.id === 'input-paga-con' || document.activeElement.id === 'input-codigo-despacho') return; if (carrito.length > 0 && !document.getElementById('btn-confirmar').disabled) { e.preventDefault(); confirmarVenta(); } } });
+function setPagaCon(monto) { 
+    document.getElementById('input-paga-con').value = monto; 
+    calcularVuelto(monto); 
+    // MODO RÁFAGA: Auto-Confirmar al tocar el billete
+    const switchRafaga = document.getElementById('modo-rafaga');
+    if(switchRafaga && switchRafaga.checked && carrito.length > 0) {
+        confirmarVenta();
+    }
+}
+
+function pagoExacto() {
+    if(carrito.length === 0) return;
+    document.getElementById('input-paga-con').value = totalCarritoValor;
+    calcularVuelto(totalCarritoValor);
+    confirmarVenta();
+}
+
+function calcularVuelto(pagaCon) { const paga = parseInt(pagaCon) || 0; const vuelto = paga - totalCarritoValor; const label = document.getElementById('label-vuelto'); if (vuelto >= 0 && paga > 0) { label.innerText = `$${vuelto}`; label.classList.replace('text-rose-500', 'text-emerald-500'); } else { label.innerText = `$0`; label.classList.replace('text-emerald-500', 'text-rose-500'); } }
+
+function setMetodo(m) { 
+    metodoSeleccionado = m; 
+    document.getElementById('pago-efectivo').className = m === 'Efectivo' ? "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-[10px] lg:text-xs" : "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-[10px] lg:text-xs"; 
+    document.getElementById('pago-transf').className = m === 'Transferencia' ? "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-[10px] lg:text-xs" : "relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-[10px] lg:text-xs"; 
+    gestionarCalculadoraVuelto(); document.getElementById('buscador').focus(); 
+}
+
+// ATAJOS DE TECLADO (F1, F2, ESPACIO Y ENTER)
+document.addEventListener('keydown', function(e) { 
+    const modales = ['modal-apertura', 'modal-clubes', 'modal-deportes', 'modal-usuarios', 'modal-producto', 'modal-gasto', 'modal-cierre', 'modal-movimiento', 'modal-qr', 'modal-buzon']; 
+    const algunModalAbierto = modales.some(id => document.getElementById(id) && document.getElementById(id).classList.contains('flex')); 
+    if(algunModalAbierto) return; 
+
+    if (e.key === 'F1') { e.preventDefault(); setMetodo('Efectivo'); } 
+    if (e.key === 'F2') { e.preventDefault(); setMetodo('Transferencia'); } 
+    if (e.key === 'Escape') { e.preventDefault(); carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); document.getElementById('buscador').focus(); } 
+    
+    // BARRA ESPACIADORA = PAGO EXACTO
+    if (e.code === 'Space') { 
+        if(document.activeElement.tagName !== 'INPUT') { 
+            e.preventDefault(); 
+            pagoExacto(); 
+        } 
+    }
+
+    if (e.key === 'Enter') { 
+        if(document.activeElement.id === 'input-paga-con' || document.activeElement.id === 'input-codigo-despacho') return; 
+        if (carrito.length > 0 && !document.getElementById('btn-confirmar').disabled) { e.preventDefault(); confirmarVenta(); } 
+    } 
+});
+
+let timeoutBannerVuelto;
+function mostrarBannerVueltoGigante(vueltoFinal) {
+    const banner = document.getElementById('banner-vuelto-rafaga');
+    const montoText = document.getElementById('banner-vuelto-rafaga-monto');
+    montoText.innerText = `$${vueltoFinal}`;
+    banner.classList.remove('hidden');
+    clearTimeout(timeoutBannerVuelto);
+    timeoutBannerVuelto = setTimeout(() => { banner.classList.add('hidden'); }, 6000);
+}
 
 async function confirmarVenta() { 
     if (!cajaActualId || carrito.length === 0) return; 
     const btn = document.getElementById('btn-confirmar'); btn.innerText = "PROCESANDO..."; btn.disabled = true;
     const esMovil = document.getElementById('entrega-movil').checked;
+    
+    // Capturar vuelto antes de borrar
+    const pagaCon = parseInt(document.getElementById('input-paga-con').value) || totalCarritoValor;
+    const vueltoFinal = pagaCon - totalCarritoValor;
+    const metodoUsado = metodoSeleccionado;
+
     try {
         const res = await fetch('/confirmar-venta', { method: 'POST', headers: authJsonH(), body: JSON.stringify({ items: carrito, metodoPago: metodoSeleccionado, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id, requiere_despacho: esMovil }) }); 
         const data = await res.json(); 
-        if(data.success) { if (esMovil) { mostrarModalQR(data.codigo_retiro); } else { generarTicketVenta(); setTimeout(() => { window.print(); limpiarVentaExitosa(); }, 500); } } else { alert(data.error || "Error al procesar la venta"); }
-    } catch(e) { alert("Error de conexión"); }
-    btn.innerHTML = `CONFIRMAR`; btn.disabled = false;
+        if(data.success) { 
+            if (esMovil) { 
+                mostrarModalQR(data.codigo_retiro); 
+            } else { 
+                generarTicketVenta(); 
+                setTimeout(() => { window.print(); limpiarVentaExitosa(vueltoFinal, metodoUsado); }, 300); 
+            } 
+        } else { alert(data.error || "Error al procesar la venta"); btn.innerHTML = `CONFIRMAR`; btn.disabled = false;}
+    } catch(e) { alert("Error de conexión"); btn.innerHTML = `CONFIRMAR`; btn.disabled = false;}
 }
-function limpiarVentaExitosa() { carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); cargarProductos(); document.getElementById('ticket-impresion').style.display = 'none'; document.getElementById('buscador').focus(); }
+
+function limpiarVentaExitosa(vuelto, metodo) { 
+    carrito = []; 
+    document.getElementById('input-paga-con').value = ''; 
+    actualizarCarrito(); 
+    cargarProductos(); 
+    document.getElementById('ticket-impresion').style.display = 'none'; 
+    document.getElementById('buscador').focus(); 
+    document.getElementById('btn-confirmar').innerHTML = `CONFIRMAR`; 
+    
+    // Disparar cartel gigante si corresponde
+    if(metodo === 'Efectivo' && vuelto > 0) {
+        mostrarBannerVueltoGigante(vuelto);
+    }
+}
 
 function mostrarModalQR(codigo) {
     document.getElementById('qr-codigo-texto').innerText = codigo;
     const container = document.getElementById('qr-container'); container.innerHTML = ''; 
     qrcodeGenerador = new QRCode(container, { text: codigo, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
     document.getElementById('modal-qr').classList.replace('hidden', 'flex');
+    document.getElementById('btn-confirmar').innerHTML = `CONFIRMAR`; 
 }
-function cerrarModalQR() { document.getElementById('modal-qr').classList.replace('flex', 'hidden'); limpiarVentaExitosa(); }
+function cerrarModalQR() { document.getElementById('modal-qr').classList.replace('flex', 'hidden'); limpiarVentaExitosa(0, ''); }
 
 function verDespacho() {
     document.getElementById('panel-dashboard').classList.add('hidden');
@@ -422,6 +510,4 @@ async function ejecutarCierreDefinitivo() {
 }
 
 function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Gastos/Retiros:</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
-
-// ESTA ERA LA FUNCIÓN QUE FALTABA
 function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
