@@ -11,7 +11,6 @@ let categoriaActiva = 'TODOS';
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
 let ticketCierreDatos = {};
-let qrcodeGenerador = null; 
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -126,7 +125,7 @@ async function verDashboardSport(overrideDeporteId = null, overrideNombre = null
         const resProds = await fetch(`/productos/${targetDeporteId}`, { headers: authH() }); const prods = await resProds.json();
         const prodsBajoStock = prods.filter(p => p.stock <= 10).sort((a,b) => a.stock - b.stock);
 
-        let htmlCajas = cajas.map(c => `<div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm mb-2"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-xs ${c.estado === 'ABIERTA' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}">${c.estado === 'ABIERTA' ? 'ON' : 'OFF'}</div><div><p class="font-bold text-slate-800 text-sm">${c.cajero_nombre || 'Desconocido'}</p><p class="text-[10px] text-slate-400 mt-0.5">Apertura: ${c.fecha_apertura}</p></div></div><div class="text-right"><p class="font-black text-slate-800">$${c.total_ingresos}</p><p class="text-[10px] text-rose-500 font-bold">Retiros: -$${c.total_gastos}</p></div></div>`).join('');
+        let htmlCajas = cajas.map(c => `<div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm mb-2"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-xs ${c.estado === 'ABIERTA' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}">${c.estado === 'ABIERTA' ? 'ON' : 'OFF'}</div><div><p class="font-bold text-slate-800 text-sm">${c.cajero_nombre || 'Desconocido'}</p><p class="text-[10px] text-slate-400 mt-0.5">Apertura: ${c.fecha_apertura}</p></div></div><div class="text-right"><p class="font-black text-slate-800">$${c.total_ingresos}</p><p class="text-[10px] text-rose-500 font-bold">Gas: -$${c.total_gastos} | Ret: -$${c.total_retiros}</p></div></div>`).join('');
         if(cajas.length === 0) htmlCajas = '<p class="text-sm text-slate-400 italic p-4">No hay turnos registrados.</p>';
 
         let htmlMovs = movimientos.map(m => {
@@ -175,7 +174,7 @@ async function cargarDashboard(clubIdToView = null) {
                 let btnEntrar = ''; 
                 if (usuarioActual.rol === 'SYSADMIN' && !vistaDashboardActual) { btnEntrar = `<button onclick="cargarDashboard(${d.id})" class="mt-5 w-full bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all">Ver Subcomisiones ➔</button>`; } 
                 else { btnEntrar = `<button onclick="verDashboardSport(${d.id}, '${d.nombre.replace(/'/g, "\\'")}')" class="mt-5 w-full bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white text-blue-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm">Auditar Movimientos ➔</button>`; }
-                return `<div class="bg-white p-6 rounded-[32px] shadow-sm border flex flex-col hover:shadow-lg transition-shadow"><div class="flex items-center gap-4 mb-4"><img src="${d.logo || d.imagen || 'https://via.placeholder.com/50'}" class="w-12 h-12 rounded-xl object-cover"><h3 class="text-xl font-black text-slate-800 leading-tight">${d.nombre}</h3></div><div class="space-y-2 mb-4"><div class="bg-emerald-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-emerald-600">INGRESOS</span><span class="font-black text-emerald-600">$${d.total_ventas}</span></div><div class="bg-rose-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-rose-600">RETIROS</span><span class="font-black text-rose-600">-$${d.total_gastos}</span></div></div><div class="border-t pt-3 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">NETO</span><span class="text-2xl font-black ${neto>=0?'text-slate-800':'text-rose-500'}">$${neto}</span></div>${btnEntrar}</div>`; 
+                return `<div class="bg-white p-6 rounded-[32px] shadow-sm border flex flex-col hover:shadow-lg transition-shadow"><div class="flex items-center gap-4 mb-4"><img src="${d.logo || d.imagen || 'https://via.placeholder.com/50'}" class="w-12 h-12 rounded-xl object-cover"><h3 class="text-xl font-black text-slate-800 leading-tight">${d.nombre}</h3></div><div class="space-y-2 mb-4"><div class="bg-emerald-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-emerald-600">INGRESOS</span><span class="font-black text-emerald-600">$${d.total_ventas}</span></div><div class="bg-rose-50 p-3 rounded-xl flex justify-between"><span class="text-[10px] font-bold text-rose-600">GASTOS</span><span class="font-black text-rose-600">-$${d.total_gastos}</span></div></div><div class="border-t pt-3 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">NETO</span><span class="text-2xl font-black ${neto>=0?'text-slate-800':'text-rose-500'}">$${neto}</span></div>${btnEntrar}</div>`; 
             }).join('') + `</div>`; 
         }
         divContenido.innerHTML = `<div class="mb-10 border-b border-slate-200 pb-6 flex justify-between items-end"><div><h2 class="text-4xl font-black text-slate-800 tracking-tighter">${titulo}</h2><div class="mt-2">${subtitulo}</div></div><button onclick="cargarDashboard()" class="bg-white text-slate-600 px-6 py-3 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-all">🔄 Actualizar</button></div>${grillaHTML}`;
@@ -487,13 +486,13 @@ function generarTicketVenta() {
 }
 
 // =========================================================
-// MÓDULO DE RETIROS DE CAJA (CON TICKET DE FIRMA)
+// MÓDULO DE SALIDAS (GASTOS vs RETIROS) CON TICKET
 // =========================================================
 function abrirModalGasto() { 
     if(!cajaActualId) return alert("Abre caja primero"); 
     document.getElementById('gasto-desc').value=''; 
     document.getElementById('gasto-monto').value=''; 
-    document.getElementById('gasto-imprimir').checked = true; // Por defecto imprimimos
+    document.getElementById('gasto-imprimir').checked = true;
     abrirModal('modal-gasto'); 
 }
 
@@ -501,38 +500,43 @@ async function guardarGasto() {
     const d = document.getElementById('gasto-desc').value;
     const m = document.getElementById('gasto-monto').value; 
     const imprimir = document.getElementById('gasto-imprimir').checked;
+    
+    // Leemos el radio button seleccionado
+    const tipoSeleccionado = document.querySelector('input[name="gasto_tipo"]:checked').value;
 
     if(!d || !m) return alert("Completa el concepto y el monto."); 
     
     try {
         const res = await fetch('/gastos', { 
-            method: 'POST', 
-            headers: authJsonH(), 
-            body: JSON.stringify({ descripcion: d, monto: m, caja_id: cajaActualId, club_id: usuarioActual.club_id, deporte_id: usuarioActual.deporte_id }) 
+            method: 'POST', headers: authJsonH(), 
+            body: JSON.stringify({ 
+                descripcion: d, 
+                monto: m, 
+                tipo: tipoSeleccionado, 
+                caja_id: cajaActualId, 
+                club_id: usuarioActual.club_id, 
+                deporte_id: usuarioActual.deporte_id 
+            }) 
         }); 
         const data = await res.json();
         
         if(data.success) {
             cerrarModalGenerico('modal-gasto'); 
             cargarHistoriales(); 
-            
-            // Si el cajero tildó imprimir
-            if(imprimir) {
-                imprimirTicketRetiro(d, m);
-            }
-        } else {
-            alert("Error al registrar el retiro");
-        }
+            if(imprimir) imprimirTicketSalida(d, m, tipoSeleccionado);
+        } else { alert("Error al registrar"); }
     } catch (e) { alert("Error de conexión"); }
 }
 
-function imprimirTicketRetiro(concepto, monto) {
+function imprimirTicketSalida(concepto, monto, tipo) {
     const t = document.getElementById('ticket-impresion'); 
     const fechaStr = new Date().toLocaleString('es-AR'); 
     
+    let tituloTicket = tipo === 'GASTO' ? 'COMPROBANTE DE COMPRA / GASTO' : 'COMPROBANTE DE RETIRO';
+
     let htmlTicket = `
         <div style="text-align:center; margin-bottom:10px;">
-            <h3 style="margin:0; font-size:16px; font-weight:900;">COMPROBANTE DE RETIRO</h3>
+            <h3 style="margin:0; font-size:14px; font-weight:900;">${tituloTicket}</h3>
             <p style="margin:0; font-size:10px;">${usuarioActual.club_nombre} | ${usuarioActual.deporte_nombre}</p>
         </div>
         <div style="border-top:1px dashed #000; border-bottom:1px dashed #000; padding:10px 0; margin-bottom:10px; font-size:12px;">
@@ -552,37 +556,44 @@ function imprimirTicketRetiro(concepto, monto) {
             Firma del Cajero
         </div>
     `; 
-    
-    t.style.display = 'block'; 
-    t.innerHTML = htmlTicket; 
-    
-    setTimeout(() => { 
-        window.print(); 
-        t.style.display = 'none'; 
-        document.getElementById('buscador').focus(); 
-    }, 500); 
+    t.style.display = 'block'; t.innerHTML = htmlTicket; 
+    setTimeout(() => { window.print(); t.style.display = 'none'; document.getElementById('buscador').focus(); }, 500); 
 }
 
 async function cargarHistoriales() { 
     if(!cajaActualId) return; 
     const resV = await fetch(`/historial-ventas/${cajaActualId}`, {headers:authH()}); const resG = await fetch(`/historial-gastos/${cajaActualId}`, {headers:authH()}); 
     const vts = await resV.json(); const gst = await resG.json(); 
+    
     document.getElementById('tabla-ventas').innerHTML = vts.slice(0,5).map(v => { let badgeMovil = v.codigo_retiro ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-[9px] ml-2 font-black border border-blue-200 shadow-sm whitespace-nowrap">📱 MÓVIL (${v.codigo_retiro})</span>` : ''; return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm text-xs"><div class="flex items-center flex-wrap gap-1"><b>$${v.total}</b> ${badgeMovil}</div><span class="text-slate-400 font-bold shrink-0">${v.metodoPago}</span></div>`; }).join('') || '<p class="text-xs text-slate-400 italic">No hay ventas en este turno.</p>'; 
-    document.getElementById('tabla-gastos').innerHTML = gst.slice(0,5).map(g => `<div class="flex justify-between p-3 bg-rose-50 rounded-xl border border-rose-100 shadow-sm text-rose-900 text-xs"><b>$${g.monto}</b><span>${g.descripcion}</span></div>`).join('') || '<p class="text-xs text-slate-400 italic">No hay retiros registrados.</p>'; 
+    
+    document.getElementById('tabla-gastos').innerHTML = gst.slice(0,5).map(g => {
+        let badgeTipo = g.tipo === 'GASTO' ? '🛒 GASTO' : '🏦 RETIRO';
+        return `<div class="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100 shadow-sm text-rose-900 text-xs"><div class="flex flex-col"><b>-$${g.monto}</b><span class="text-[9px] uppercase tracking-widest font-black text-rose-500">${badgeTipo}</span></div><span class="text-right truncate ml-2">${g.descripcion}</span></div>`;
+    }).join('') || '<p class="text-xs text-slate-400 italic">No hay salidas registradas.</p>'; 
 }
 
 async function verCierreCaja() { 
     const res = await fetch(`/resumen-caja/${cajaActualId}`, {headers:authH()}); const data = await res.json(); 
     let totalEfectivo = 0; let totalTransferencia = 0; data.ventas.forEach(v => { if(v.metodo === 'Efectivo') totalEfectivo += v.total; if(v.metodo === 'Transferencia') totalTransferencia += v.total; }); 
-    const apertura = data.apertura || 0; const gastos = data.gastos || 0; const efectivoEnCaja = (apertura + totalEfectivo) - gastos; const totalFacturado = totalEfectivo + totalTransferencia; ticketCierreDatos = { apertura, totalEfectivo, gastos, efectivoEnCaja, totalTransferencia, totalFacturado };
+    
+    const apertura = data.apertura || 0; 
+    const gastos = data.gastos || 0; 
+    const retiros = data.retiros || 0;
+    
+    // El efectivo de la caja baja tanto si compras hielo (Gasto) como si le das la plata a secretaria (Retiro)
+    const efectivoEnCaja = (apertura + totalEfectivo) - gastos - retiros; 
+    const totalFacturado = totalEfectivo + totalTransferencia; 
+    
+    ticketCierreDatos = { apertura, totalEfectivo, gastos, retiros, efectivoEnCaja, totalTransferencia, totalFacturado };
 
-    document.getElementById('detalle-cierre').innerHTML = `<h3 class="font-black text-center mb-6 text-2xl text-slate-800 tracking-tight">Cierre de Turno</h3><div class="space-y-3 mb-4 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200"><div class="flex justify-between items-center text-xs md:text-sm font-bold text-slate-500 pb-2 border-b border-slate-200"><span>Fondo Inicial de Caja</span><span>$${apertura}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-blue-600"><span>+ Ventas Efectivo</span><span>$${totalEfectivo}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-rose-500 pb-2 border-b border-slate-200"><span>- Retiros Efectivo</span><span>-$${gastos}</span></div><div class="flex justify-between items-center text-lg md:text-xl font-black text-emerald-600 pt-2"><span>EFECTIVO EN CAJÓN</span><span>$${efectivoEnCaja}</span></div></div><div class="space-y-2 mb-6 bg-slate-100 p-4 rounded-xl border border-slate-200"><div class="flex justify-between items-center text-[10px] md:text-xs font-bold text-slate-500"><span>Ventas por Transferencia</span><span>$${totalTransferencia}</span></div><div class="flex justify-between items-center text-sm font-black text-slate-800 pt-2 border-t border-slate-300"><span>TOTAL FACTURADO</span><span>$${totalFacturado}</span></div></div>`; 
+    document.getElementById('detalle-cierre').innerHTML = `<h3 class="font-black text-center mb-6 text-2xl text-slate-800 tracking-tight">Cierre de Turno</h3><div class="space-y-3 mb-4 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200"><div class="flex justify-between items-center text-xs md:text-sm font-bold text-slate-500 pb-2 border-b border-slate-200"><span>Fondo Inicial de Caja</span><span>$${apertura}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-blue-600"><span>+ Ventas Efectivo</span><span>$${totalEfectivo}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-rose-500 pb-2 border-b border-slate-200"><span>- Compras (Gastos)</span><span>-$${gastos}</span></div><div class="flex justify-between items-center text-xs md:text-sm font-black text-rose-500 pb-2 border-b border-slate-200"><span>- Retiros a Tesorería</span><span>-$${retiros}</span></div><div class="flex justify-between items-center text-lg md:text-xl font-black text-emerald-600 pt-2"><span>EFECTIVO EN CAJÓN</span><span>$${efectivoEnCaja}</span></div></div><div class="space-y-2 mb-6 bg-slate-100 p-4 rounded-xl border border-slate-200"><div class="flex justify-between items-center text-[10px] md:text-xs font-bold text-slate-500"><span>Ventas por Transferencia</span><span>$${totalTransferencia}</span></div><div class="flex justify-between items-center text-sm font-black text-slate-800 pt-2 border-t border-slate-300"><span>TOTAL FACTURADO</span><span>$${totalFacturado}</span></div></div>`; 
     document.getElementById('botones-cierre-modal').innerHTML = `<div class="flex gap-2"><button onclick="cerrarModalGenerico('modal-cierre')" class="flex-1 bg-slate-200 text-slate-600 py-3 md:py-4 rounded-xl font-black hover:bg-slate-300 transition-colors text-sm md:text-base">Volver</button><button onclick="ejecutarCierreDefinitivo()" class="flex-[2] bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg hover:bg-rose-600 transition-colors text-sm md:text-base">🔒 CERRAR TURNO</button></div>`; abrirModal('modal-cierre'); 
 }
 
 async function ejecutarCierreDefinitivo() {
-    if(confirm("⚠️ ¿Estás seguro de CERRAR EL TURNO? Ya no podrás registrar más ventas ni retiros.")) { const res = await fetch(`/cerrar-caja/${cajaActualId}`, { method: 'PUT', headers:authH() }); const data = await res.json(); if(data.success) { imprimirCierreTicket(); setTimeout(() => { window.location.reload(); }, 1000); } else { alert("Error al cerrar la caja."); } }
+    if(confirm("⚠️ ¿Estás seguro de CERRAR EL TURNO? Ya no podrás registrar más ventas ni salidas de dinero.")) { const res = await fetch(`/cerrar-caja/${cajaActualId}`, { method: 'PUT', headers:authH() }); const data = await res.json(); if(data.success) { imprimirCierreTicket(); setTimeout(() => { window.location.reload(); }, 1000); } else { alert("Error al cerrar la caja."); } }
 }
 
-function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Retiros:</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
+function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Compras (Gastos):</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Retiros:</span> <span>-$${ticketCierreDatos.retiros}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
 function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
