@@ -25,9 +25,6 @@
         .animate-tx-1 { animation: slideInRight 0.6s ease-out 1.2s forwards; opacity: 0; }
         .animate-tx-2 { animation: slideInRight 0.6s ease-out 1.4s forwards; opacity: 0; }
         .animate-tx-3 { animation: slideInRight 0.6s ease-out 1.6s forwards; opacity: 0; }
-        @keyframes popIn { 0% { transform: scale(0.9) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-        .anim-pop { animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
-        .delay-100 { animation-delay: 0.2s; } .delay-300 { animation-delay: 0.4s; } .delay-500 { animation-delay: 0.6s; }
     </style>
 </head>
 <body class="overflow-x-hidden antialiased">
@@ -43,21 +40,14 @@
                 </div>
                 
                 <div class="hidden md:flex gap-3">
-                    <a href="#subcomisiones" class="group flex items-center gap-2 px-5 py-2 rounded-full bg-slate-800/40 border border-slate-700/50 text-slate-300 text-sm font-bold hover:bg-orange-500/10 hover:text-orange-400 hover:border-orange-500/30 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)] transition-all duration-300">
-                        <span class="group-hover:scale-110 transition-transform duration-300">🎯</span> Subcomisiones
-                    </a>
-                    
-                    <a href="#cajeros" class="group flex items-center gap-2 px-5 py-2 rounded-full bg-slate-800/40 border border-slate-700/50 text-slate-300 text-sm font-bold hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/30 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all duration-300">
-                        <span class="group-hover:scale-110 transition-transform duration-300">👨‍💻</span> Cajeros
-                    </a>
-                    
-                    <a href="#clubes" class="group flex items-center gap-2 px-5 py-2 rounded-full bg-slate-800/40 border border-slate-700/50 text-slate-300 text-sm font-bold hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all duration-300">
-                        <span class="group-hover:scale-110 transition-transform duration-300">🏛️</span> Clubes
-                    </a>
+                    <a href="#subcomisiones" class="group flex items-center gap-2 px-5 py-2 rounded-full bg-slate-800/40 border border-slate-700/50 text-slate-300 text-sm font-bold hover:bg-orange-500/10 hover:text-orange-400 hover:border-orange-500/30 transition-all duration-300"><span class="group-hover:scale-110 transition-transform duration-300">🎯</span> Subcomisiones</a>
+                    <a href="#cajeros" class="group flex items-center gap-2 px-5 py-2 rounded-full bg-slate-800/40 border border-slate-700/50 text-slate-300 text-sm font-bold hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/30 transition-all duration-300"><span class="group-hover:scale-110 transition-transform duration-300">👨‍💻</span> Cajeros</a>
+                    <a href="#clubes" class="group flex items-center gap-2 px-5 py-2 rounded-full bg-slate-800/40 border border-slate-700/50 text-slate-300 text-sm font-bold hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 transition-all duration-300"><span class="group-hover:scale-110 transition-transform duration-300">🏛️</span> Clubes</a>
                 </div>
 
-                <div>
-                    <a href="/index.html" class="bg-white text-slate-900 px-6 py-2.5 rounded-full font-black text-sm hover:bg-slate-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.3)]">Iniciar Sesión</a>
+                <div class="flex items-center gap-2 border-l border-slate-700 pl-4">
+                    <a href="/index.html" class="text-slate-400 font-bold text-sm hover:text-white transition-colors px-2 hidden sm:block">Entrar</a>
+                    <a href="/index.html" class="bg-blue-600 text-white px-5 py-2 rounded-full font-black text-sm hover:bg-blue-500 transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)]">Probar Demo</a>
                 </div>
             </div>
         </div>
@@ -74,225 +64,89 @@
             <p class="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
                 No importa si eres un grupo de padres gestionando el buffet del fin de semana, o el Presidente auditando toda la institución. <b>Tenemos la solución exacta para ti.</b>
             </p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
                 <a href="#contacto" class="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-pink-600 text-white px-8 py-4 rounded-2xl font-black text-lg shadow-[0_10px_30px_rgba(249,115,22,0.3)] hover:scale-105 transition-transform">
                     Adquirir el Sistema
+                </a>
+                <a href="/index.html" class="w-full sm:w-auto glass-panel border border-blue-500/50 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-blue-500/10 transition-colors flex items-center justify-center gap-2 group">
+                    <span class="group-hover:scale-125 transition-transform">🎮</span> Probar Entorno Demo
                 </a>
             </div>
         </div>
 
         <div class="max-w-5xl mx-auto mt-20 relative z-20 perspective-1000">
             <div class="bg-slate-900 border border-slate-700 rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col h-[400px] w-full transform rotate-x-12 rotate-y-[-5deg] hover:rotate-0 transition-transform duration-700">
-                
                 <div class="bg-slate-800/50 px-6 py-4 flex items-center gap-2 border-b border-slate-700">
-                    <div class="w-3 h-3 rounded-full bg-rose-500"></div>
-                    <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                    <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-rose-500"></div><div class="w-3 h-3 rounded-full bg-amber-500"></div><div class="w-3 h-3 rounded-full bg-emerald-500"></div>
                     <div class="ml-4 text-xs font-bold text-slate-400 tracking-widest uppercase">Resultados de Implementar SaaS POS</div>
                 </div>
-                
                 <div class="flex-1 p-8 flex gap-8">
-                    
                     <div class="flex-1 relative overflow-hidden flex flex-col">
                         <div id="metrics-carousel" class="flex flex-1 transition-transform duration-700 ease-in-out" style="width: 400%;">
-                            
                             <div class="w-1/4 flex flex-col h-full px-2">
-                                <div class="mb-6">
-                                    <h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Crecimiento Patrimonial</h3>
-                                    <p class="text-4xl font-black text-white">$1.845.000 <span class="text-emerald-500 text-lg">▲ +24%</span></p>
-                                </div>
-                                <div class="flex-1 flex items-end gap-4 border-b border-slate-700 pb-2">
-                                    <div class="flex-1 bg-blue-500/20 rounded-t-lg relative group"><div class="absolute bottom-0 w-full bg-blue-500 rounded-t-lg animate-bar-1"></div></div>
-                                    <div class="flex-1 bg-blue-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-blue-500 rounded-t-lg animate-bar-2"></div></div>
-                                    <div class="flex-1 bg-blue-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-blue-500 rounded-t-lg animate-bar-3"></div></div>
-                                    <div class="flex-1 bg-emerald-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg animate-bar-4"></div></div>
-                                    <div class="flex-1 bg-emerald-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg h-full shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div></div>
-                                </div>
+                                <div class="mb-6"><h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Crecimiento Patrimonial</h3><p class="text-4xl font-black text-white">$1.845.000 <span class="text-emerald-500 text-lg">▲ +24%</span></p></div>
+                                <div class="flex-1 flex items-end gap-4 border-b border-slate-700 pb-2"><div class="flex-1 bg-blue-500/20 rounded-t-lg relative group"><div class="absolute bottom-0 w-full bg-blue-500 rounded-t-lg animate-bar-1"></div></div><div class="flex-1 bg-blue-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-blue-500 rounded-t-lg animate-bar-2"></div></div><div class="flex-1 bg-blue-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-blue-500 rounded-t-lg animate-bar-3"></div></div><div class="flex-1 bg-emerald-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg animate-bar-4"></div></div><div class="flex-1 bg-emerald-500/20 rounded-t-lg relative"><div class="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg h-full shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div></div></div>
                             </div>
-
                             <div class="w-1/4 flex flex-col h-full px-2">
-                                <div class="mb-6">
-                                    <h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Tiempo de Facturación</h3>
-                                    <p class="text-4xl font-black text-white">1.2 Segs <span class="text-emerald-500 text-lg">▼ -80% Demora</span></p>
-                                </div>
-                                <div class="flex-1 flex items-end gap-4 border-b border-slate-700 pb-2">
-                                    <div class="w-full bg-rose-500/20 rounded-t-lg relative h-[90%]"><div class="absolute bottom-4 w-full text-center text-xs text-rose-400 font-bold">Cuaderno</div></div>
-                                    <div class="w-full bg-orange-500/20 rounded-t-lg relative h-[60%]"><div class="absolute bottom-4 w-full text-center text-xs text-orange-400 font-bold">Caja Común</div></div>
-                                    <div class="w-full bg-emerald-500 rounded-t-lg relative h-[15%] shadow-[0_0_20px_rgba(16,185,129,0.5)]"><div class="absolute -top-6 w-full text-center text-xs text-emerald-400 font-black">SaaS POS</div></div>
-                                </div>
+                                <div class="mb-6"><h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Tiempo de Facturación</h3><p class="text-4xl font-black text-white">1.2 Segs <span class="text-emerald-500 text-lg">▼ -80% Demora</span></p></div>
+                                <div class="flex-1 flex items-end gap-4 border-b border-slate-700 pb-2"><div class="w-full bg-rose-500/20 rounded-t-lg relative h-[90%]"><div class="absolute bottom-4 w-full text-center text-xs text-rose-400 font-bold">Cuaderno</div></div><div class="w-full bg-orange-500/20 rounded-t-lg relative h-[60%]"><div class="absolute bottom-4 w-full text-center text-xs text-orange-400 font-bold">Caja Común</div></div><div class="w-full bg-emerald-500 rounded-t-lg relative h-[15%] shadow-[0_0_20px_rgba(16,185,129,0.5)]"><div class="absolute -top-6 w-full text-center text-xs text-emerald-400 font-black">SaaS POS</div></div></div>
                             </div>
-
                             <div class="w-1/4 flex flex-col h-full px-2">
-                                <div class="mb-6">
-                                    <h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Exactitud en Cierres</h3>
-                                    <p class="text-4xl font-black text-white">100% <span class="text-emerald-500 text-lg">✔ 0 Faltantes</span></p>
-                                </div>
-                                <div class="flex-1 flex flex-col justify-center gap-6 border-b border-slate-700 pb-4">
-                                    <div>
-                                        <div class="flex justify-between text-xs font-bold text-slate-400 mb-2"><span>Efectivo Declarado</span><span>Efectivo Físico</span></div>
-                                        <div class="w-full bg-slate-800 rounded-full h-4 overflow-hidden flex"><div class="bg-emerald-500 w-1/2 h-full"></div><div class="bg-emerald-400 w-1/2 h-full"></div></div>
-                                    </div>
-                                    <div>
-                                        <div class="flex justify-between text-xs font-bold text-slate-400 mb-2"><span>Transferencias App</span><span>Cuenta Bancaria</span></div>
-                                        <div class="w-full bg-slate-800 rounded-full h-4 overflow-hidden flex"><div class="bg-blue-500 w-1/2 h-full"></div><div class="bg-blue-400 w-1/2 h-full"></div></div>
-                                    </div>
-                                </div>
+                                <div class="mb-6"><h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Exactitud en Cierres</h3><p class="text-4xl font-black text-white">100% <span class="text-emerald-500 text-lg">✔ 0 Faltantes</span></p></div>
+                                <div class="flex-1 flex flex-col justify-center gap-6 border-b border-slate-700 pb-4"><div><div class="flex justify-between text-xs font-bold text-slate-400 mb-2"><span>Efectivo Declarado</span><span>Efectivo Físico</span></div><div class="w-full bg-slate-800 rounded-full h-4 overflow-hidden flex"><div class="bg-emerald-500 w-1/2 h-full"></div><div class="bg-emerald-400 w-1/2 h-full"></div></div></div><div><div class="flex justify-between text-xs font-bold text-slate-400 mb-2"><span>Transferencias App</span><span>Cuenta Bancaria</span></div><div class="w-full bg-slate-800 rounded-full h-4 overflow-hidden flex"><div class="bg-blue-500 w-1/2 h-full"></div><div class="bg-blue-400 w-1/2 h-full"></div></div></div></div>
                             </div>
-
                             <div class="w-1/4 flex flex-col h-full px-2">
-                                <div class="mb-6">
-                                    <h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Pérdida de Inventario</h3>
-                                    <p class="text-4xl font-black text-white">0.0% <span class="text-emerald-500 text-lg">🛡️ Blindado</span></p>
-                                </div>
-                                <div class="flex-1 flex items-center justify-between border-b border-slate-700 pb-4 gap-4">
-                                    <div class="flex-1 h-full bg-slate-800/80 rounded-2xl border border-emerald-500/30 flex flex-col items-center justify-center relative overflow-hidden">
-                                        <div class="absolute inset-0 bg-emerald-500/10"></div>
-                                        <span class="text-4xl mb-3 relative z-10">🍔</span>
-                                        <span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest relative z-10">Controlado</span>
-                                    </div>
-                                    <div class="flex-1 h-full bg-slate-800/80 rounded-2xl border border-emerald-500/30 flex flex-col items-center justify-center relative overflow-hidden">
-                                        <div class="absolute inset-0 bg-emerald-500/10"></div>
-                                        <span class="text-4xl mb-3 relative z-10">🥤</span>
-                                        <span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest relative z-10">Controlado</span>
-                                    </div>
-                                </div>
+                                <div class="mb-6"><h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest mb-1">Pérdida de Inventario</h3><p class="text-4xl font-black text-white">0.0% <span class="text-emerald-500 text-lg">🛡️ Blindado</span></p></div>
+                                <div class="flex-1 flex items-center justify-between border-b border-slate-700 pb-4 gap-4"><div class="flex-1 h-full bg-slate-800/80 rounded-2xl border border-emerald-500/30 flex flex-col items-center justify-center relative overflow-hidden"><div class="absolute inset-0 bg-emerald-500/10"></div><span class="text-4xl mb-3 relative z-10">🍔</span><span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest relative z-10">Controlado</span></div><div class="flex-1 h-full bg-slate-800/80 rounded-2xl border border-emerald-500/30 flex flex-col items-center justify-center relative overflow-hidden"><div class="absolute inset-0 bg-emerald-500/10"></div><span class="text-4xl mb-3 relative z-10">🥤</span><span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest relative z-10">Controlado</span></div></div>
                             </div>
-
                         </div>
-                        
-                        <div class="flex justify-center gap-2 mt-4">
-                            <div class="metrics-dot w-2 h-2 rounded-full bg-white transition-all"></div>
-                            <div class="metrics-dot w-2 h-2 rounded-full bg-slate-600 transition-all"></div>
-                            <div class="metrics-dot w-2 h-2 rounded-full bg-slate-600 transition-all"></div>
-                            <div class="metrics-dot w-2 h-2 rounded-full bg-slate-600 transition-all"></div>
-                        </div>
+                        <div class="flex justify-center gap-2 mt-4"><div class="metrics-dot w-2 h-2 rounded-full bg-white transition-all"></div><div class="metrics-dot w-2 h-2 rounded-full bg-slate-600 transition-all"></div><div class="metrics-dot w-2 h-2 rounded-full bg-slate-600 transition-all"></div><div class="metrics-dot w-2 h-2 rounded-full bg-slate-600 transition-all"></div></div>
                     </div>
-
                     <div class="w-1/3 bg-slate-800/30 rounded-2xl p-6 border border-slate-700 flex flex-col">
                         <h4 class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">Últimos Movimientos</h4>
                         <div class="space-y-3 flex-1">
-                            <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center border border-slate-700 animate-tx-1">
-                                <span class="text-emerald-400 font-black text-sm">+ $8.500</span><span class="text-slate-400 text-xs truncate">Venta Buffet</span>
-                            </div>
-                            <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center border border-slate-700 animate-tx-2">
-                                <span class="text-emerald-400 font-black text-sm">+ $12.000</span><span class="text-slate-400 text-xs truncate">Transf. Banco</span>
-                            </div>
-                            <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center border border-slate-700 animate-tx-3">
-                                <span class="text-rose-400 font-black text-sm">- $15.000</span><span class="text-slate-400 text-xs truncate">Pago Árbitros</span>
-                            </div>
+                            <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center border border-slate-700 animate-tx-1"><span class="text-emerald-400 font-black text-sm">+ $8.500</span><span class="text-slate-400 text-xs truncate">Venta Buffet</span></div>
+                            <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center border border-slate-700 animate-tx-2"><span class="text-emerald-400 font-black text-sm">+ $12.000</span><span class="text-slate-400 text-xs truncate">Transf. Banco</span></div>
+                            <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center border border-slate-700 animate-tx-3"><span class="text-rose-400 font-black text-sm">- $15.000</span><span class="text-slate-400 text-xs truncate">Pago Árbitros</span></div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="absolute -top-6 -right-6 bg-blue-600 text-white p-4 rounded-2xl shadow-[0_10px_30px_rgba(37,99,235,0.4)] z-30 font-black flex items-center gap-3 animate-bounce hidden md:flex border border-blue-400">
-                <span class="text-3xl">🛡️</span>
-                <div><p class="text-[10px] uppercase tracking-widest opacity-90 text-blue-200">Control Total</p><p class="text-xl leading-tight">Cero Faltantes</p></div>
             </div>
         </div>
     </section>
 
     <section id="subcomisiones" class="py-24 px-4 relative bg-[#131b2f] border-t border-slate-800 mt-10">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-            
             <div class="w-full lg:w-1/2">
                 <span class="bg-orange-500/20 text-orange-400 px-4 py-1.5 rounded-full font-black tracking-widest uppercase text-xs mb-4 inline-block border border-orange-500/30">🎯 Para Comisiones y Delegados</span>
                 <h2 class="text-4xl md:text-5xl font-black leading-tight mb-6">Tu deporte,<br><span class="text-gradient-sub">Tus reglas.</span></h2>
                 <p class="text-slate-400 text-lg mb-8 leading-relaxed">
                     Sabemos el esfuerzo que hacen los padres y delegados para recaudar fondos. <b>Toma el control absoluto de tu disciplina</b> con herramientas profesionales que cuidan cada centavo.
                 </p>
-                
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-orange-500 hover:bg-slate-800/50 transition-colors">
-                        <h4 class="font-black text-white text-base mb-1">🔒 Cajas y Voluntarios</h4>
-                        <p class="text-slate-400 text-sm leading-tight">Control total de aperturas/cierres y creación de todos los cajeros (voluntarios) que necesites.</p>
-                    </div>
-                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-emerald-500 hover:bg-slate-800/50 transition-colors">
-                        <h4 class="font-black text-white text-base mb-1">🏦 Multicuentas</h4>
-                        <p class="text-slate-400 text-sm leading-tight">Es importantísimo: Visualiza y mueve tu dinero libremente entre Efectivo, Bancos y la Mutual.</p>
-                    </div>
-                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-blue-500 hover:bg-slate-800/50 transition-colors">
-                        <h4 class="font-black text-white text-base mb-1">📒 Tu Propio Libro Mayor</h4>
-                        <p class="text-slate-400 text-sm leading-tight">Anota ingresos por ventas de rifas o pollos, y registra gastos en camisetas, elementos y árbitros.</p>
-                    </div>
-                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-pink-500 hover:bg-slate-800/50 transition-colors">
-                        <h4 class="font-black text-white text-base mb-1">📦 Control de Inventario</h4>
-                        <p class="text-slate-400 text-sm leading-tight">Administra y ten el control exacto sobre todos los productos que se venden en la cantina.</p>
-                    </div>
-                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-purple-500 hover:bg-slate-800/50 transition-colors">
-                        <h4 class="font-black text-white text-base mb-1">📥 Buzón Comunitario</h4>
-                        <p class="text-slate-400 text-sm leading-tight">Tienes un buzón con QR donde las personas y familias pueden darte sugerencias o consejos.</p>
-                    </div>
-                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-cyan-500 hover:bg-slate-800/50 transition-colors">
-                        <h4 class="font-black text-white text-base mb-1">☁️ Respaldo en la Nube</h4>
-                        <p class="text-slate-400 text-sm leading-tight">Tus números y auditorías siempre seguros. Descarga copias de seguridad con un solo botón.</p>
-                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-orange-500 hover:bg-slate-800/50 transition-colors"><h4 class="font-black text-white text-base mb-1">🔒 Cajas y Voluntarios</h4><p class="text-slate-400 text-sm leading-tight">Control total de aperturas/cierres y creación de todos los cajeros (voluntarios) que necesites.</p></div>
+                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-emerald-500 hover:bg-slate-800/50 transition-colors"><h4 class="font-black text-white text-base mb-1">🏦 Multicuentas</h4><p class="text-slate-400 text-sm leading-tight">Es importantísimo: Visualiza y mueve tu dinero libremente entre Efectivo, Bancos y la Mutual.</p></div>
+                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-blue-500 hover:bg-slate-800/50 transition-colors"><h4 class="font-black text-white text-base mb-1">📒 Tu Propio Libro Mayor</h4><p class="text-slate-400 text-sm leading-tight">Anota ingresos por ventas de rifas o pollos, y registra gastos en camisetas, elementos y árbitros.</p></div>
+                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-pink-500 hover:bg-slate-800/50 transition-colors"><h4 class="font-black text-white text-base mb-1">📦 Control de Inventario</h4><p class="text-slate-400 text-sm leading-tight">Administra y ten el control exacto sobre todos los productos que se venden en la cantina.</p></div>
+                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-purple-500 hover:bg-slate-800/50 transition-colors"><h4 class="font-black text-white text-base mb-1">📥 Buzón Comunitario</h4><p class="text-slate-400 text-sm leading-tight">Tienes un buzón con QR donde las familias pueden darte sugerencias de forma anónima y directa.</p></div>
+                    <div class="glass-panel p-5 rounded-2xl border-t-2 border-t-cyan-500 hover:bg-slate-800/50 transition-colors"><h4 class="font-black text-white text-base mb-1">☁️ Respaldo en la Nube</h4><p class="text-slate-400 text-sm leading-tight">Tus números y auditorías siempre seguros. Descarga copias de seguridad con un solo botón.</p></div>
                 </div>
             </div>
             
             <div class="w-full lg:w-1/2 glass-panel p-2 rounded-[32px] border border-slate-700 shadow-[0_20px_50px_rgba(249,115,22,0.1)] relative overflow-hidden h-[500px] bg-slate-900">
                 <div id="sport-carousel" class="flex transition-transform duration-700 ease-in-out h-full" style="width: 1000%; transform: translateX(0%);">
-                    
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://wallpapers.com/images/featured/estadio-de-futbol-wpbk2e4mrt3gz1mz.jpg" alt="Fútbol" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">⚽ Fútbol</h3>
-                    </div>
-                    
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://images.pexels.com/photos/358042/pexels-photo-358042.jpeg?auto=compress&cs=tinysrgb&w=1000" alt="Básquet" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏀 Básquet</h3>
-                    </div>
-                    
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=1000" alt="Tenis" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🎾 Tenis</h3>
-                    </div>
-                    
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://images.pexels.com/photos/1263426/pexels-photo-1263426.jpeg?auto=compress&cs=tinysrgb&w=1000" alt="Vóley" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏐 Vóley</h3>
-                    </div>
-                    
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://www.elneverazo.com/wp-content/uploads/2024/03/432678697_17958019544741401_2399586640037731369_n-1020x580.jpg" alt="Pádel" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏸 Pádel</h3>
-                    </div>
-
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://images.pexels.com/photos/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=1000" alt="Natación" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏊 Natación</h3>
-                    </div>
-
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://wallpaper.forfun.com/fetch/a7/a7f243004eb5dc9bc363afb84b13fcb9.jpeg" alt="Gimnasia Artística" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🤸 Gimnasia Art.</h3>
-                    </div>
-
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://images.pexels.com/photos/26546638/pexels-photo-26546638.jpeg?cs=srgb&dl=pexels-bennycool-26546638.jpg&fm=jpg" alt="Fútbol Infantil" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">👦 Fútbol Infantil</h3>
-                    </div>
-
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://www.cdeluruguay.gob.ar/images/2025/noviembre/bochas%204.jpg" alt="Bochas" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🎳 Bochas</h3>
-                    </div>
-
-                    <div class="h-full relative group flex-shrink-0" style="width: 10%;">
-                        <img src="https://images.pexels.com/photos/2834336/pexels-photo-2834336.jpeg?auto=compress&cs=tinysrgb&w=1000" alt="Básquet Menores" class="rounded-[24px] object-cover object-center h-full w-full">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div>
-                        <h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🧒 Básquet Menores</h3>
-                    </div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://wallpapers.com/images/featured/estadio-de-futbol-wpbk2e4mrt3gz1mz.jpg" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">⚽ Fútbol</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://images.pexels.com/photos/358042/pexels-photo-358042.jpeg?auto=compress&cs=tinysrgb&w=1000" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏀 Básquet</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=1000" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🎾 Tenis</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://images.pexels.com/photos/1263426/pexels-photo-1263426.jpeg?auto=compress&cs=tinysrgb&w=1000" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏐 Vóley</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://www.elneverazo.com/wp-content/uploads/2024/03/432678697_17958019544741401_2399586640037731369_n-1020x580.jpg" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏸 Pádel</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://images.pexels.com/photos/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=1000" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🏊 Natación</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://wallpaper.forfun.com/fetch/a7/a7f243004eb5dc9bc363afb84b13fcb9.jpeg" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🤸 Gimnasia Art.</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://images.pexels.com/photos/26546638/pexels-photo-26546638.jpeg?cs=srgb&dl=pexels-bennycool-26546638.jpg&fm=jpg" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">👦 Fútbol Infantil</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://www.cdeluruguay.gob.ar/images/2025/noviembre/bochas%204.jpg" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🎳 Bochas</h3></div>
+                    <div class="h-full relative group flex-shrink-0" style="width: 10%;"><img src="https://images.pexels.com/photos/2834336/pexels-photo-2834336.jpeg?auto=compress&cs=tinysrgb&w=1000" class="rounded-[24px] object-cover object-center h-full w-full"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent rounded-[24px]"></div><h3 class="absolute bottom-8 left-8 text-4xl font-black text-white tracking-tighter drop-shadow-lg">🧒 Básquet Menores</h3></div>
                 </div>
-
                 <button id="carousel-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/30 transition-all z-10 border border-white/20 shadow-lg"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
                 <button id="carousel-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/30 transition-all z-10 border border-white/20 shadow-lg"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
             </div>
@@ -306,44 +160,13 @@
                 <h2 class="text-3xl md:text-5xl font-black mb-4">La cantina más rápida de la liga</h2>
                 <p class="text-slate-400 text-lg">El sistema hace el trabajo pesado para que el cajero no se vuelva loco en el entretiempo.</p>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                
-                <div class="glass-panel p-8 rounded-[32px] hover:-translate-y-2 transition-transform shadow-lg border-t-4 border-t-blue-400">
-                    <div class="w-14 h-14 bg-blue-500/20 text-blue-500 rounded-2xl flex items-center justify-center text-3xl mb-6">🚀</div>
-                    <h3 class="text-xl font-black mb-3 text-white">Catálogo al Instante</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Apertura de caja y creación visual de los productos que se venderán ese día con el stock exacto de ese momento.</p>
-                </div>
-
-                <div class="glass-panel p-8 rounded-[32px] hover:-translate-y-2 transition-transform shadow-lg border-t-4 border-t-amber-400">
-                    <div class="w-14 h-14 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center text-3xl mb-6">⚡</div>
-                    <h3 class="text-xl font-black mb-3 text-white">Venta Modo Ráfaga</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Muy importante: Ideal para cuando se te juntan 50 personas en el entretiempo. Barra espaciadora cobra exacto y limpia en 1 segundo.</p>
-                </div>
-
-                <div class="glass-panel p-8 rounded-[32px] hover:-translate-y-2 transition-transform shadow-lg border-t-4 border-t-orange-400">
-                    <div class="w-14 h-14 bg-orange-500/20 text-orange-500 rounded-2xl flex items-center justify-center text-3xl mb-6">🧾</div>
-                    <h3 class="text-xl font-black mb-3 text-white">Tickets Inteligentes</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Ticket para el usuario donde detalla la bebida y la comida por separado, para cuando los buffet entregan los productos en barras distintas.</p>
-                </div>
-
-                <div class="glass-panel p-8 rounded-[32px] hover:-translate-y-2 transition-transform shadow-lg border-t-4 border-t-purple-400">
-                    <div class="w-14 h-14 bg-purple-500/20 text-purple-500 rounded-2xl flex items-center justify-center text-3xl mb-6">📱</div>
-                    <h3 class="text-xl font-black mb-3 text-white">Vendedores Móviles</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Desde el celular generan ventas en la tribuna y los usuarios van a retirar con un código QR directamente a las barras de despacho.</p>
-                </div>
-
-                <div class="glass-panel p-8 rounded-[32px] hover:-translate-y-2 transition-transform shadow-lg border-t-4 border-t-rose-400">
-                    <div class="w-14 h-14 bg-rose-500/20 text-rose-500 rounded-2xl flex items-center justify-center text-3xl mb-6">💸</div>
-                    <h3 class="text-xl font-black mb-3 text-white">Salidas y Retiros en el acto</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Genera una salida cuando necesitas comprar algo urgente en ese momento (ej: hielo) utilizando dinero de la caja y emitiendo comprobante.</p>
-                </div>
-
-                <div class="glass-panel p-8 rounded-[32px] hover:-translate-y-2 transition-transform shadow-lg border-t-4 border-t-emerald-400">
-                    <div class="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center text-3xl mb-6">⚖️</div>
-                    <h3 class="text-xl font-black mb-3 text-white">Cierres Claros (Efe/Transf)</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">El carrito acepta pagos en efectivo o transferencias. Así, cuando se cierra la caja, el sistema te dice exactamente en dónde quedó el dinero.</p>
-                </div>
+                <div class="glass-panel p-8 rounded-[32px] border-t-4 border-t-blue-400"><div class="w-14 h-14 bg-blue-500/20 text-blue-500 rounded-2xl flex items-center justify-center text-3xl mb-6">🚀</div><h3 class="text-xl font-black mb-3 text-white">Catálogo al Instante</h3><p class="text-slate-400 text-sm leading-relaxed">Apertura de caja y creación visual de los productos que se venderán ese día con el stock exacto de ese momento.</p></div>
+                <div class="glass-panel p-8 rounded-[32px] border-t-4 border-t-amber-400"><div class="w-14 h-14 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center text-3xl mb-6">⚡</div><h3 class="text-xl font-black mb-3 text-white">Venta Modo Ráfaga</h3><p class="text-slate-400 text-sm leading-relaxed">Muy importante: Ideal para cuando se te juntan 50 personas. Barra espaciadora cobra exacto y limpia en 1 segundo.</p></div>
+                <div class="glass-panel p-8 rounded-[32px] border-t-4 border-t-orange-400"><div class="w-14 h-14 bg-orange-500/20 text-orange-500 rounded-2xl flex items-center justify-center text-3xl mb-6">🧾</div><h3 class="text-xl font-black mb-3 text-white">Tickets Inteligentes</h3><p class="text-slate-400 text-sm leading-relaxed">Ticket para el usuario donde detalla la bebida y la comida por separado, para cuando los buffet entregan en barras distintas.</p></div>
+                <div class="glass-panel p-8 rounded-[32px] border-t-4 border-t-purple-400"><div class="w-14 h-14 bg-purple-500/20 text-purple-500 rounded-2xl flex items-center justify-center text-3xl mb-6">📱</div><h3 class="text-xl font-black mb-3 text-white">Vendedores Móviles</h3><p class="text-slate-400 text-sm leading-relaxed">Desde el celular generan ventas en la tribuna y los usuarios van a retirar con un código QR directamente a las barras.</p></div>
+                <div class="glass-panel p-8 rounded-[32px] border-t-4 border-t-rose-400"><div class="w-14 h-14 bg-rose-500/20 text-rose-500 rounded-2xl flex items-center justify-center text-3xl mb-6">💸</div><h3 class="text-xl font-black mb-3 text-white">Salidas y Retiros en el acto</h3><p class="text-slate-400 text-sm leading-relaxed">Genera una salida cuando necesitas comprar algo urgente en ese momento utilizando dinero de la caja y emitiendo comprobante.</p></div>
+                <div class="glass-panel p-8 rounded-[32px] border-t-4 border-t-emerald-400"><div class="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center text-3xl mb-6">⚖️</div><h3 class="text-xl font-black mb-3 text-white">Cierres Claros (Efe/Transf)</h3><p class="text-slate-400 text-sm leading-relaxed">El carrito acepta pagos en efectivo o transferencias. Al cerrar, el sistema te dice exactamente en dónde quedó el dinero.</p></div>
             </div>
         </div>
     </section>
@@ -351,51 +174,23 @@
     <section id="clubes" class="py-24 px-4 relative overflow-hidden bg-[#131b2f] border-y border-slate-800">
         <div class="absolute right-0 top-0 w-1/2 h-full bg-blue-600/5 blur-[100px] rounded-full pointer-events-none"></div>
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
-            
             <div class="w-full md:w-1/2 order-2 md:order-1 glass-panel p-8 rounded-[40px] border border-slate-700 shadow-[0_20px_50px_rgba(59,130,246,0.1)]">
-                <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-6">
-                    <h3 class="font-black text-2xl text-white">Auditoría Global</h3>
-                    <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-lg text-xs font-black tracking-widest uppercase">Solo Lectura</span>
-                </div>
+                <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-6"><h3 class="font-black text-2xl text-white">Auditoría Global</h3><span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-lg text-xs font-black tracking-widest uppercase">Solo Lectura</span></div>
                 <div class="space-y-4">
-                    <div class="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-500 hover:bg-slate-700 transition-colors cursor-default">
-                        <span class="text-slate-300 font-bold text-lg">⚽ Subcomisión de Fútbol</span>
-                        <span class="text-xl font-black text-white">$450.000</span>
-                    </div>
-                    <div class="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-l-4 border-orange-500 hover:bg-slate-700 transition-colors cursor-default">
-                        <span class="text-slate-300 font-bold text-lg">🏀 Subcomisión de Básquet</span>
-                        <span class="text-xl font-black text-white">$210.000</span>
-                    </div>
-                    <div class="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-l-4 border-blue-500 hover:bg-slate-700 transition-colors cursor-default">
-                        <span class="text-slate-300 font-bold text-lg">🍔 Buffet General</span>
-                        <span class="text-xl font-black text-white">$890.000</span>
-                    </div>
+                    <div class="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-500"><span class="text-slate-300 font-bold text-lg">⚽ Subcomisión de Fútbol</span><span class="text-xl font-black text-white">$450.000</span></div>
+                    <div class="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-l-4 border-orange-500"><span class="text-slate-300 font-bold text-lg">🏀 Subcomisión de Básquet</span><span class="text-xl font-black text-white">$210.000</span></div>
+                    <div class="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-l-4 border-blue-500"><span class="text-slate-300 font-bold text-lg">🍔 Buffet General</span><span class="text-xl font-black text-white">$890.000</span></div>
                 </div>
-                <div class="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
-                    <span class="text-slate-400 font-bold uppercase tracking-widest text-xs">Patrimonio Total</span>
-                    <span class="text-3xl font-black text-emerald-400">$1.550.000</span>
-                </div>
+                <div class="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center"><span class="text-slate-400 font-bold uppercase tracking-widest text-xs">Patrimonio Total</span><span class="text-3xl font-black text-emerald-400">$1.550.000</span></div>
             </div>
-            
             <div class="w-full md:w-1/2 order-1 md:order-2">
                 <span class="bg-blue-500/20 text-blue-400 px-4 py-1.5 rounded-full font-black tracking-widest uppercase text-xs mb-4 inline-block border border-blue-500/30">🏛️ Solución para Instituciones</span>
                 <h2 class="text-4xl md:text-5xl font-black leading-tight mb-6">El control total <br><span class="text-gradient-club">de tu Institución.</span></h2>
-                <p class="text-slate-400 text-lg mb-8 leading-relaxed">
-                    Si decides implementar el sistema a nivel general, el Presidente y la Tesorería tendrán un <b>Panel Maestro</b> para auditar en tiempo real los movimientos de todas las disciplinas.
-                </p>
+                <p class="text-slate-400 text-lg mb-8 leading-relaxed">Si decides implementar el sistema a nivel general, el Presidente y la Tesorería tendrán un <b>Panel Maestro</b> para auditar en tiempo real los movimientos de todas las disciplinas.</p>
                 <ul class="space-y-5 font-bold text-slate-300">
-                    <li class="flex items-start gap-3">
-                        <span class="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg mt-0.5">✔️</span> 
-                        <div><p class="text-white">Estandariza la tecnología.</p><p class="text-sm text-slate-400 font-normal">Todas tus subcomisiones trabajarán igual, sin inventos raros.</p></div>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg mt-0.5">✔️</span> 
-                        <div><p class="text-white">Auditoría sin riesgos.</p><p class="text-sm text-slate-400 font-normal">Modo Solo Lectura: mira los números sin miedo a borrar nada por error.</p></div>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="bg-rose-500/20 text-rose-400 p-1.5 rounded-lg mt-0.5">⛔</span> 
-                        <div><p class="text-white">Botón de Suspensión Total.</p><p class="text-sm text-slate-400 font-normal">Bloquea el acceso a cualquier subcomisión con un solo clic si es necesario.</p></div>
-                    </li>
+                    <li class="flex items-start gap-3"><span class="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg mt-0.5">✔️</span> <div><p class="text-white">Estandariza la tecnología.</p><p class="text-sm text-slate-400 font-normal">Todas tus subcomisiones trabajarán igual, sin inventos raros.</p></div></li>
+                    <li class="flex items-start gap-3"><span class="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg mt-0.5">✔️</span> <div><p class="text-white">Auditoría sin riesgos.</p><p class="text-sm text-slate-400 font-normal">Modo Solo Lectura: mira los números sin miedo a borrar nada por error.</p></div></li>
+                    <li class="flex items-start gap-3"><span class="bg-rose-500/20 text-rose-400 p-1.5 rounded-lg mt-0.5">⛔</span> <div><p class="text-white">Botón de Suspensión Total.</p><p class="text-sm text-slate-400 font-normal">Bloquea el acceso a cualquier subcomisión con un solo clic si es necesario.</p></div></li>
                 </ul>
             </div>
         </div>
@@ -405,74 +200,46 @@
         <div class="max-w-5xl mx-auto">
             <h2 class="text-4xl md:text-6xl font-black mb-6 text-white">Profesionaliza tu trabajo Hoy</h2>
             <p class="text-xl text-slate-400 mb-12">Dejen el papel y pasen a la era de la transparencia. Elige el plan que se adapte a tu situación actual.</p>
-            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="glass-panel p-8 rounded-[40px] shadow-2xl border-t border-t-orange-500/30 hover:border-orange-500/50 transition-colors flex flex-col h-full">
                     <div class="text-left flex-1">
                         <span class="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest mb-4 inline-block">Plan Independiente</span>
                         <h3 class="text-3xl font-black mb-4 text-white">Mi Subcomisión</h3>
-                        <p class="text-slate-400 mb-6 text-sm">Ideal para un deporte individual (Fútbol, Básquet, etc). Tendrán su propia base de datos, cajeros y control de fondos privado.</p>
+                        <p class="text-slate-400 mb-6 text-sm">Ideal para un deporte individual. Tendrán su propia base de datos, cajeros y control de fondos privado.</p>
                     </div>
-                    <a href="https://wa.me/1234567890?text=Hola!%20Me%20interesa%20contratar%20el%20sistema%20SaaS%20POS%20para%20mi%20Subcomisión%20independiente." target="_blank" class="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-lg shadow-[0_10px_20px_rgba(234,88,12,0.3)] hover:bg-orange-500 transition-colors flex items-center justify-center gap-2 mt-auto">
-                        <span>💬</span> Pedir Info por WhatsApp
-                    </a>
+                    <a href="https://wa.me/1234567890?text=Hola!%20Me%20interesa%20contratar%20el%20sistema%20SaaS%20POS%20para%20mi%20Subcomisión." target="_blank" class="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-orange-500 transition-colors flex items-center justify-center gap-2 mt-auto"><span>💬</span> Pedir Info por WhatsApp</a>
                 </div>
-
                 <div class="glass-panel p-8 rounded-[40px] shadow-2xl border-t border-t-blue-500/30 hover:border-blue-500/50 transition-colors flex flex-col h-full">
                     <div class="text-left flex-1">
                         <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest mb-4 inline-block">Plan Institucional</span>
                         <h3 class="text-3xl font-black mb-4 text-white">Todo el Club</h3>
-                        <p class="text-slate-400 mb-6 text-sm">Ideal para Presidentes. Incluye licencias ilimitadas para todos los deportes y el Panel de Auditoría Global para Tesorería.</p>
+                        <p class="text-slate-400 mb-6 text-sm">Ideal para Presidentes. Incluye licencias ilimitadas para todos los deportes y Panel de Auditoría Global.</p>
                     </div>
-                    <a href="https://wa.me/1234567890?text=Hola!%20Soy%20autoridad%20de%20un%20Club%20y%20quiero%20información%20para%20implementar%20el%20SaaS%20POS%20a%20nivel%20institucional." target="_blank" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-500 transition-colors flex items-center justify-center gap-2 mt-auto">
-                        <span>💬</span> Pedir Info por WhatsApp
-                    </a>
+                    <a href="https://wa.me/1234567890?text=Hola!%20Soy%20autoridad%20de%20un%20Club%20y%20quiero%20información%20para%20implementar%20el%20SaaS%20POS." target="_blank" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-blue-500 transition-colors flex items-center justify-center gap-2 mt-auto"><span>💬</span> Pedir Info por WhatsApp</a>
                 </div>
             </div>
-            <p class="text-slate-500 text-sm mt-8 font-bold">Respuesta rápida. Te damos una demostración y configuramos tu entorno en 24 horas.</p>
         </div>
     </section>
 
-    <footer class="bg-[#020617] py-8 text-center border-t border-slate-800 text-slate-500 font-bold text-sm">
-        <p>© 2026 SaaS POS Deportes. Todos los derechos reservados.</p>
-    </footer>
+    <footer class="bg-[#020617] py-8 text-center border-t border-slate-800 text-slate-500 font-bold text-sm"><p>© 2026 SaaS POS Deportes. Todos los derechos reservados.</p></footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Lógica Carrusel Métricas Iniciales
             const metricsCarousel = document.getElementById('metrics-carousel');
             const metricsDots = document.querySelectorAll('.metrics-dot');
             let currentMetricIndex = 0;
-
             setInterval(() => {
                 currentMetricIndex = (currentMetricIndex + 1) % 4;
                 metricsCarousel.style.transform = `translateX(-${currentMetricIndex * 25}%)`;
-                metricsDots.forEach((dot, index) => {
-                    dot.classList.toggle('bg-white', index === currentMetricIndex);
-                    dot.classList.toggle('bg-slate-600', index !== currentMetricIndex);
-                });
+                metricsDots.forEach((dot, index) => { dot.classList.toggle('bg-white', index === currentMetricIndex); dot.classList.toggle('bg-slate-600', index !== currentMetricIndex); });
             }, 4500);
 
-            // Lógica Carrusel Deportes
             const carousel = document.getElementById('sport-carousel');
-            const prevBtn = document.getElementById('carousel-prev');
-            const nextBtn = document.getElementById('carousel-next');
-            const totalSlides = 10; 
-            let currentIndex = 0;
-            let carouselInterval;
-
+            const totalSlides = 10; let currentIndex = 0; let carouselInterval;
             function updateCarousel() { carousel.style.transform = `translateX(-${currentIndex * 10}%)`; }
             function nextSlide() { currentIndex = (currentIndex + 1) % totalSlides; updateCarousel(); }
-            function prevSlide() { currentIndex = (currentIndex - 1 + totalSlides) % totalSlides; updateCarousel(); }
             function startInterval() { carouselInterval = setInterval(nextSlide, 3500); }
-            function stopInterval() { clearInterval(carouselInterval); }
-
-            nextBtn.addEventListener('click', () => { stopInterval(); nextSlide(); startInterval(); });
-            prevBtn.addEventListener('click', () => { stopInterval(); prevSlide(); startInterval(); });
-
             startInterval();
-            carousel.parentElement.addEventListener('mouseenter', stopInterval);
-            carousel.parentElement.addEventListener('mouseleave', startInterval);
         });
     </script>
 </body>

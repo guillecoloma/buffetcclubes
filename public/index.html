@@ -316,5 +316,77 @@
         });
         setInterval(function() { consoleAbierta = false; console.log(element); console.clear(); }, 1000);
     </script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="/app.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="/app.js"></script>
+
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) || (e.ctrlKey && ['U','S'].includes(e.key.toUpperCase()))) {
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Si el usuario ya está adentro del sistema, no dibujamos la tarjeta
+            if (sessionStorage.getItem('pos_token')) return;
+
+            const panel = document.createElement('div');
+            panel.id = 'panel-demo-flotante';
+            panel.className = "fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-xl p-5 rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.4)] border border-slate-200 z-[9999] w-[95%] max-w-md";
+            panel.innerHTML = `
+                <p class="text-center text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">👇 Toca para probar el sistema 👇</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div onclick="ejecutarAutoLogin('admin@demo.com', 'demo123')" class="bg-orange-50 hover:bg-orange-100 border border-orange-200 p-3 rounded-2xl cursor-pointer transition-all flex flex-col items-center justify-center text-center group">
+                        <span class="text-3xl mb-1 group-hover:scale-110 transition-transform">🎯</span>
+                        <h4 class="font-black text-orange-800 text-sm leading-tight">Admin<br>Subcomisión</h4>
+                        <p class="text-[9px] text-orange-500 font-bold mt-2 font-mono">admin@demo.com</p>
+                    </div>
+                    <div onclick="ejecutarAutoLogin('cajero@demo.com', 'demo123')" class="bg-blue-50 hover:bg-blue-100 border border-blue-200 p-3 rounded-2xl cursor-pointer transition-all flex flex-col items-center justify-center text-center group">
+                        <span class="text-3xl mb-1 group-hover:scale-110 transition-transform">👨‍💻</span>
+                        <h4 class="font-black text-blue-800 text-sm leading-tight">Cajero<br>(POS y Ventas)</h4>
+                        <p class="text-[9px] text-blue-500 font-bold mt-2 font-mono">cajero@demo.com</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        });
+
+        // Función Mágica de Auto-Login
+        window.ejecutarAutoLogin = function(email, password) {
+            const inputEmail = document.getElementById('login-email');
+            const inputPass = document.getElementById('login-pass');
+            const btnLogin = document.querySelector('button[onclick="intentarLogin()"]');
+            const panel = document.getElementById('panel-demo-flotante');
+
+            if (inputEmail && inputPass && btnLogin) {
+                inputEmail.value = email;
+                inputPass.value = password;
+                
+                const textoOriginal = btnLogin.innerHTML;
+                btnLogin.innerHTML = 'Conectando... ⏳';
+                btnLogin.classList.add('bg-emerald-500', 'animate-pulse');
+                btnLogin.disabled = true;
+                
+                // ESCONDEMOS EL PANEL PARA QUE NO ESTORBE AL ENTRAR AL DASHBOARD
+                if (panel) panel.style.display = 'none';
+                
+                setTimeout(() => {
+                    intentarLogin();
+                    
+                    // Solo si falló el internet, lo restauramos
+                    setTimeout(() => {
+                        btnLogin.innerHTML = textoOriginal;
+                        btnLogin.classList.remove('bg-emerald-500', 'animate-pulse');
+                        btnLogin.disabled = false;
+                        if (panel && !sessionStorage.getItem('pos_token')) panel.style.display = 'block';
+                    }, 1500);
+                }, 500);
+            }
+        };
+    </script>
 </body>
 </html>
