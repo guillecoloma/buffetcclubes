@@ -11,7 +11,6 @@ let categoriaActiva = 'TODOS';
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
 let ticketCierreDatos = {};
-let qrcodeGenerador = null; 
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -97,9 +96,6 @@ function verPOS() {
     if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
 }
 
-// =========================================================
-// DASHBOARD MULTICUENTAS Y MODO AUDITORÍA PARA DUEÑOS
-// =========================================================
 async function verDashboardSport(overrideDeporteId = null, overrideNombre = null) {
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
@@ -204,16 +200,13 @@ async function cargarDashboard(clubIdToView = null) {
 }
 
 // =========================================================
-// MÓDULO: BUZÓN DE SUGERENCIAS Y QR
+// MÓDULO: BUZÓN DE SUGERENCIAS Y QR (IMPRESIÓN A4)
 // =========================================================
 async function abrirBuzonSugerencias() {
     const contenedorQR = document.getElementById('qr-buzon-container');
-    contenedorQR.innerHTML = ''; // Limpiamos si había uno antes
-    
-    // Generar URL pública para este deporte
+    contenedorQR.innerHTML = ''; 
     const urlPublica = `${window.location.origin}/feedback.html?deporte=${usuarioActual.deporte_id}`;
     
-    // Dibujamos el QR
     new QRCode(contenedorQR, {
         text: urlPublica,
         width: 150,
@@ -225,6 +218,48 @@ async function abrirBuzonSugerencias() {
 
     await cargarComentariosBuzon();
     abrirModal('modal-buzon');
+}
+
+// NUEVA FUNCIÓN PARA IMPRIMIR CARTEL A4
+function imprimirCartelBuzon() {
+    const canvas = document.querySelector('#qr-buzon-container canvas');
+    if (!canvas) {
+        alert("Aguarde un segundo a que se genere el código QR.");
+        return;
+    }
+    
+    const qrDataUrl = canvas.toDataURL("image/png");
+    const cartel = document.getElementById('cartel-impresion');
+    
+    cartel.innerHTML = `
+        <div style="text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; padding: 20px;">
+            <h1 style="font-size: 40px; font-weight: 900; margin-bottom: 5px; color: #0f172a;">${usuarioActual.club_nombre}</h1>
+            <h2 style="font-size: 24px; color: #4f46e5; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2>
+            
+            <div style="font-size: 80px; margin-bottom: 10px;">📥</div>
+            <h1 style="font-size: 55px; font-weight: 900; margin-bottom: 20px; color: #1e293b;">Buzón de Sugerencias</h1>
+            
+            <p style="font-size: 22px; color: #475569; margin-bottom: 50px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5;">
+                Tu opinión nos ayuda a mejorar. <b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.
+            </p>
+            
+            <div style="border: 8px solid #0f172a; border-radius: 32px; display: inline-block; padding: 20px; margin-bottom: 50px;">
+                <img src="${qrDataUrl}" style="width: 350px; height: 350px; display: block;" />
+            </div>
+            
+            <p style="font-size: 18px; font-weight: bold; color: #94a3b8;">¡Gracias por ser parte de nuestra comunidad!</p>
+        </div>
+    `;
+
+    // Activamos el motor de A4 en el CSS agregando esta clase al body
+    document.body.classList.add('printing-poster');
+    
+    setTimeout(() => {
+        window.print();
+        // Limpiamos al terminar para que el POS siga imprimiendo tickets de 80mm
+        document.body.classList.remove('printing-poster');
+        cartel.innerHTML = ''; 
+    }, 300);
 }
 
 async function cargarComentariosBuzon() {
