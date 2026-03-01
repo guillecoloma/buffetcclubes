@@ -1,4 +1,260 @@
-<div id="modal-producto" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SaaS POS - Sistema Central</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .product-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 16px; background: white; border: 1px solid #e2e8f0; overflow: hidden; position: relative;}
+        @media (min-width: 1024px) { .product-card { border-radius: 32px; } }
+        .product-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); border-color: #3b82f6; }
+        .header-gradient { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .header-gradient-club { background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); }
+        #contenedor-historial { transition: all 0.5s ease; max-height: 0; overflow: hidden; opacity: 0; }
+        #contenedor-historial.abierto { max-height: 1000px; opacity: 1; margin-top: 1rem; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* DOBLE MOTOR DE IMPRESIÓN CORREGIDO (TICKET vs CARTEL) */
+        @media print {
+            @page { margin: 0; } 
+            .no-print { display: none !important; }
+            
+            /* --- MOTOR TICKET 80mm --- */
+            body:not(.printing-poster) { background: white !important; margin: 0; padding: 0; overflow: visible !important; height: auto !important; }
+            body:not(.printing-poster) #ticket-impresion { display: block !important; width: 76mm !important; margin: 0; padding: 0 2mm 10mm 2mm; font-family: 'Courier New', Courier, monospace !important; color: #000 !important; font-size: 13px !important; font-weight: bold !important; -webkit-font-smoothing: none !important; font-smooth: never !important; }
+            body:not(.printing-poster) .ticket-section { border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+            body:not(.printing-poster) .ticket-title { font-size: 16px; font-weight: 900; text-align: center; margin: 0 0 10px 0; text-transform: uppercase; }
+            body:not(.printing-poster) .ticket-item { display: flex; justify-content: space-between; margin-bottom: 4px; }
+            body:not(.printing-poster) .cut-line { text-align: center; font-size: 10px; padding: 10px 0; font-weight: bold; }
+            
+            /* --- MOTOR CARTEL A4 (BUZÓN - ESTRICTAMENTE 1 HOJA) --- */
+            body.printing-poster { 
+                background: white !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                width: 100vw !important; 
+                height: 100vh !important; 
+                overflow: hidden !important; 
+            }
+            body.printing-poster #cartel-impresion { 
+                display: flex !important; 
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                width: 100% !important; 
+                height: 100% !important; 
+                margin: 0; 
+                padding: 0; 
+                background: white; 
+                box-sizing: border-box;
+            }
+            body.printing-poster #ticket-impresion { display: none !important; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-[#f8fafc]">
+
+    <div id="pantalla-login" class="fixed inset-0 bg-slate-900 z-[300] flex items-center justify-center p-4">
+        <div class="bg-white p-8 md:p-10 rounded-[32px] md:rounded-[48px] shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-3xl font-extrabold mb-8 uppercase tracking-tighter text-slate-800">SaaS POS</h2>
+            <div class="space-y-4">
+                <input type="email" id="login-email" placeholder="Email" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none focus:border-blue-500 font-bold">
+                <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none focus:border-blue-500 font-bold">
+                <button onclick="intentarLogin()" class="w-full bg-blue-600 text-white py-5 rounded-[24px] font-black text-xl hover:bg-blue-700 transition-all shadow-lg tracking-widest mt-4">INGRESAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-apertura" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[250] hidden items-center justify-center p-4">
+        <div class="bg-white p-8 md:p-10 rounded-[32px] md:rounded-[48px] shadow-2xl w-full max-w-md text-center relative">
+            <button onclick="cerrarModalGenerico('modal-apertura'); if(usuarioActual.rol === 'SPORTADMIN') verDashboardSport();" class="absolute top-6 right-6 text-slate-400 hover:text-slate-700 font-black text-xl">X</button>
+            <h2 class="text-2xl font-extrabold mb-4 md:mb-6 text-slate-800">Apertura de Caja</h2>
+            <p class="text-xs md:text-sm text-slate-500 mb-4 font-bold">Indica con qué monto inicias</p>
+            <input type="number" id="monto-apertura" placeholder="Fondo Inicial ($)" class="w-full p-4 bg-slate-50 border-2 rounded-2xl text-center text-3xl md:text-4xl font-black text-emerald-600 mb-6 outline-none shadow-inner">
+            <button onclick="abrirCaja()" class="w-full bg-emerald-600 text-white py-4 rounded-[20px] font-black text-lg shadow-lg hover:bg-emerald-700 transition-colors">INICIAR TURNO</button>
+        </div>
+    </div>
+
+    <header id="main-header" class="header-gradient text-white py-2 px-3 md:py-4 md:px-8 shadow-xl flex flex-col md:flex-row justify-between items-center gap-2 md:gap-0 no-print shrink-0 z-50">
+        <div class="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-between md:justify-start">
+            <div class="flex items-center gap-2">
+                <img id="header-logo" src="" class="w-8 h-8 md:w-12 md:h-12 rounded-lg object-cover bg-white p-0.5 hidden shadow-sm">
+                <div id="logo-default" class="bg-white text-slate-800 w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-black text-base md:text-xl shadow-sm">POS</div>
+                <div class="text-left">
+                    <h1 class="text-sm md:text-xl font-black leading-tight tracking-tight truncate max-w-[150px] md:max-w-none" id="header-entidad-nombre">Sistema</h1>
+                    <p class="text-[8px] md:text-[10px] font-bold text-amber-400 uppercase tracking-[0.2em]" id="header-rol">SYSADMIN</p>
+                </div>
+            </div>
+            <button onclick="cerrarSesion()" class="md:hidden bg-transparent hover:bg-white/10 px-3 py-1.5 rounded-full font-bold text-[10px] border border-white/30 transition-all">Salir</button>
+        </div>
+        
+        <div class="flex overflow-x-auto scrollbar-hide w-full md:w-auto gap-2 pb-1 md:pb-0 items-center">
+            <button onclick="descargarBackup()" id="btn-backup" class="shrink-0 hidden bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors border border-slate-500" title="Descargar copia de seguridad">💾 Backup</button>
+            <button onclick="abrirModalClubes()" id="btn-clubes" class="shrink-0 hidden bg-purple-600 hover:bg-purple-500 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">🏢 Clubes</button>
+            <button onclick="abrirModalDeportes()" id="btn-deportes" class="shrink-0 hidden bg-amber-500 hover:bg-amber-400 text-amber-950 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">🏆 Deportes</button>
+            <button onclick="verDashboardSport()" id="btn-dash-sport" class="shrink-0 hidden bg-indigo-500 hover:bg-indigo-400 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">📊 Panel</button>
+            <button onclick="verPOS()" id="btn-pos-sport" class="shrink-0 hidden bg-teal-500 hover:bg-teal-400 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">🛒 Vender</button>
+            <button onclick="verDespacho()" id="btn-despacho" class="shrink-0 hidden bg-orange-500 hover:bg-orange-400 text-orange-950 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">🛎️ Despacho</button>
+            <button onclick="abrirModalUsuarios()" id="btn-usuarios" class="shrink-0 hidden bg-white/10 hover:bg-white/20 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs border border-white/20 transition-all">👥 Equipo</button>
+            <button onclick="abrirModalNuevo()" id="btn-nuevo-prod" class="shrink-0 hidden bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">+ Prod.</button>
+            <button onclick="abrirModalGasto()" id="btn-gastos" class="shrink-0 hidden bg-rose-500 hover:bg-rose-600 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors">💸 Gastos</button>
+            <button onclick="verCierreCaja()" id="btn-cierre" class="shrink-0 hidden bg-slate-900 border border-slate-700 hover:bg-slate-800 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs shadow-md transition-colors text-amber-400">🔒 Cierre</button>
+            <button onclick="cerrarSesion()" class="hidden md:block shrink-0 bg-transparent hover:bg-white/10 px-4 py-2 rounded-full font-bold text-xs border border-white/30 transition-all ml-2">Salir</button>
+        </div>
+    </header>
+
+    <div id="panel-dashboard" class="flex-1 overflow-y-auto p-4 md:p-8 hidden no-print bg-slate-50">
+        <div class="max-w-7xl mx-auto" id="contenido-dashboard"></div>
+    </div>
+
+    <div id="panel-despacho" class="flex-1 overflow-y-auto p-4 md:p-8 hidden no-print bg-slate-50">
+        <div class="max-w-6xl mx-auto">
+            <div class="mb-6 md:mb-8 border-b border-slate-200 pb-4 md:pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-3">
+                <div>
+                    <h2 class="text-2xl md:text-4xl font-black text-slate-800 tracking-tighter">Despacho de Pedidos</h2>
+                    <p class="mt-1 text-xs md:text-sm text-slate-500 font-bold">Escanea QR o ingresa código</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <input type="text" id="input-codigo-despacho" onkeydown="if(event.key==='Enter') buscarTicketDespacho()" placeholder="Ej: T-482" class="flex-1 md:w-48 p-2 md:p-3 rounded-xl border-2 outline-none focus:border-orange-500 font-black text-center uppercase text-base md:text-lg shadow-sm">
+                    <button onclick="buscarTicketDespacho()" class="bg-orange-500 text-white px-4 md:px-6 rounded-xl font-black shadow-md hover:bg-orange-600 transition-colors text-sm md:text-base">BUSCAR</button>
+                </div>
+            </div>
+
+            <div id="resultado-escaneo" class="hidden mb-6 md:mb-8 p-4 md:p-6 rounded-[24px] md:rounded-3xl shadow-lg border-2"></div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                <div class="lg:col-span-2">
+                    <h3 class="font-black text-slate-400 uppercase tracking-widest text-[10px] md:text-xs mb-3 flex justify-between items-center">
+                        En Fila de Preparación 
+                        <button onclick="cargarTodoDespacho()" class="bg-white border border-slate-200 px-3 py-1 rounded-md text-slate-600 hover:bg-slate-100 shadow-sm transition-colors">🔄 Actualizar</button>
+                    </h3>
+                    <div id="grilla-pendientes" class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4"></div>
+                </div>
+
+                <div class="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-slate-200 pt-6 lg:pt-0 lg:pl-8">
+                    <h3 class="font-black text-emerald-600 uppercase tracking-widest text-[10px] md:text-xs mb-3 flex items-center gap-2">✔️ Últimos Entregados</h3>
+                    <div id="grilla-entregados" class="space-y-2 md:space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="panel-pos" class="flex-1 flex flex-col lg:flex-row overflow-hidden no-print hidden">
+        <main class="flex-1 p-2 lg:p-8 overflow-y-auto bg-slate-50 relative">
+            <div class="max-w-7xl mx-auto pb-4 lg:pb-10">
+                <div class="flex items-center mb-3 border-b border-slate-200 pb-3 gap-2">
+                    <h2 class="text-xl font-black text-slate-800 tracking-tighter hidden lg:block mr-4">Menú</h2>
+                    <div class="flex gap-1.5 w-full overflow-x-auto pb-1 scrollbar-hide">
+                        <button onclick="filtrarCategoria('TODOS')" id="cat-TODOS" class="shrink-0 bg-slate-800 text-white px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm transition-all text-[9px] lg:text-xs">TODOS</button>
+                        <button onclick="filtrarCategoria('COMIDA')" id="cat-COMIDA" class="shrink-0 bg-white text-slate-500 border border-slate-200 px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all text-[9px] lg:text-xs uppercase">🍔 Comida</button>
+                        <button onclick="filtrarCategoria('BEBIDA')" id="cat-BEBIDA" class="shrink-0 bg-white text-slate-500 border border-slate-200 px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all text-[9px] lg:text-xs uppercase">🥤 Bebida</button>
+                        <button onclick="filtrarCategoria('OTROS')" id="cat-OTROS" class="shrink-0 bg-white text-slate-500 border border-slate-200 px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all text-[9px] lg:text-xs uppercase">🛒 Otros</button>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full mb-4 lg:mb-8">
+                    <input type="text" id="buscador" onkeyup="aplicarFiltros()" placeholder="🔍 Buscar..." class="flex-1 p-2 lg:p-4 rounded-xl border-2 border-white bg-white outline-none focus:border-blue-500 shadow-sm font-bold text-sm lg:text-lg transition-colors">
+                    <button onclick="toggleHistorial()" class="bg-white text-slate-600 hover:bg-slate-50 px-3 py-2 lg:px-6 lg:py-4 rounded-xl font-black flex justify-center items-center shadow-sm transition-all text-[9px] lg:text-xs uppercase tracking-widest" title="Historial"><span id="flecha">▶</span> <span class="hidden lg:inline ml-1">Historial</span></button>
+                </div>
+                
+                <div id="grilla-productos" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-6"></div>
+                
+                <div id="contenedor-historial">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 lg:mt-8">
+                        <div class="bg-white rounded-[20px] lg:rounded-[32px] p-4 lg:p-8 shadow-sm border border-slate-100"><h3 class="font-black text-blue-900 mb-3 uppercase tracking-widest text-[9px] lg:text-xs flex items-center gap-2">💰 Ventas Recientes</h3><div id="tabla-ventas" class="space-y-2"></div></div>
+                        <div class="bg-white rounded-[20px] lg:rounded-[32px] p-4 lg:p-8 shadow-sm border border-slate-100"><h3 class="font-black text-rose-900 mb-3 uppercase tracking-widest text-[9px] lg:text-xs flex items-center gap-2">📉 Gastos</h3><div id="tabla-gastos" class="space-y-2"></div></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="w-full lg:w-[340px] h-[38vh] lg:h-auto shrink-0 bg-white border-t-2 lg:border-t-0 lg:border-l border-slate-200 shadow-[0_-10px_25px_rgba(0,0,0,0.1)] lg:shadow-2xl flex flex-col z-10 relative rounded-t-[24px] lg:rounded-t-none">
+            <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto mt-2 mb-1 lg:hidden"></div>
+            
+            <div class="px-3 py-1 lg:p-3 border-b border-slate-100 flex justify-between items-center bg-transparent lg:bg-slate-50/50 shrink-0">
+                <h2 class="text-sm lg:text-lg font-black text-slate-800 tracking-tight">Caja Actual</h2>
+                <span id="label-usuario-caja" class="bg-blue-100 text-blue-700 px-2 py-0.5 lg:px-3 lg:py-1 rounded-full font-black text-[8px] lg:text-[9px] uppercase tracking-widest shadow-inner truncate max-w-[100px]">--</span>
+            </div>
+            
+            <div id="lista-carrito" class="flex-1 p-2 overflow-y-auto space-y-1.5 bg-slate-50/30 relative"></div>
+            
+            <div class="p-2 lg:p-3 bg-white border-t border-slate-200 shrink-0 pb-4 lg:pb-3">
+                <div class="grid grid-cols-2 gap-1.5 lg:gap-2 mb-1 lg:mb-2">
+                    <button id="pago-efectivo" onclick="setMetodo('Efectivo')" class="relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black shadow-sm transition-all text-[10px] lg:text-xs">💵 EFECTIVO</button>
+                    <button id="pago-transf" onclick="setMetodo('Transferencia')" class="relative py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border-2 border-transparent bg-slate-100 text-slate-500 font-black shadow-sm transition-all text-[10px] lg:text-xs">📱 TRANSF.</button>
+                </div>
+
+                <div id="panel-vuelto" class="bg-slate-50 p-1.5 lg:p-2.5 rounded-lg hidden flex-col gap-1 border border-slate-200 shadow-inner mb-1">
+                    <div class="flex justify-between items-center"><span class="text-[8px] lg:text-[9px] font-black text-slate-400 uppercase tracking-widest">Calculadora</span><button onclick="document.getElementById('input-paga-con').value=''; calcularVuelto(0);" class="text-[8px] lg:text-[9px] text-blue-500 font-bold hover:underline">Limpiar</button></div>
+                    <div id="botones-billetes" class="flex gap-1 flex-wrap"></div>
+                    <div class="grid grid-cols-2 gap-2 items-center pt-1 mt-0.5 border-t border-slate-200">
+                        <div class="flex items-center bg-white border border-slate-200 rounded-md px-1.5 overflow-hidden shadow-sm"><span class="text-[9px] lg:text-[10px] font-black text-slate-400">Paga:$</span><input type="number" inputmode="numeric" id="input-paga-con" onkeyup="calcularVuelto(this.value)" placeholder="0" class="w-full py-1 font-black outline-none text-right text-xs lg:text-sm bg-transparent"></div>
+                        <div class="flex justify-end items-end gap-1"><span class="text-[7px] lg:text-[8px] text-slate-400 font-black uppercase mb-0.5">Vuelto:</span><span id="label-vuelto" class="text-base lg:text-xl font-black text-emerald-500 tracking-tighter leading-none">$0</span></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end pb-1 lg:pb-2 pt-0.5">
+                    <span class="text-slate-400 font-black text-[9px] lg:text-[10px] uppercase tracking-[0.1em] mb-0.5">Total</span>
+                    <span id="total-carrito" class="text-2xl lg:text-4xl font-black text-slate-800 tracking-tighter leading-none">$0</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-1 lg:gap-2 mb-1.5 lg:mb-2">
+                    <label class="flex items-center justify-center gap-1 text-[8px] lg:text-[10px] font-black text-slate-500 cursor-pointer bg-slate-50 py-1 lg:py-2 rounded-lg border border-slate-200 hover:bg-slate-100">
+                        <input type="radio" name="tipo_entrega" id="entrega-mostrador" value="mostrador" checked class="w-2.5 h-2.5 lg:w-3 lg:h-3 accent-blue-600">
+                        🏪 MOSTRADOR
+                    </label>
+                    <label class="flex items-center justify-center gap-1 text-[8px] lg:text-[10px] font-black text-slate-500 cursor-pointer bg-slate-50 py-1 lg:py-2 rounded-lg border border-slate-200 hover:bg-slate-100">
+                        <input type="radio" name="tipo_entrega" id="entrega-movil" value="movil" class="w-2.5 h-2.5 lg:w-3 lg:h-3 accent-blue-600">
+                        📱 MÓVIL (QR)
+                    </label>
+                </div>
+
+                <button onclick="confirmarVenta()" id="btn-confirmar" disabled class="w-full bg-slate-900 text-white py-2 lg:py-4 rounded-[10px] lg:rounded-[16px] font-black text-sm lg:text-lg shadow-[0_5px_15px_rgba(0,0,0,0.2)] transition-all disabled:opacity-30 disabled:shadow-none hover:bg-blue-600">
+                    CONFIRMAR
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <div id="modal-qr" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm hidden items-center justify-center z-[400] no-print p-4">
+        <div class="bg-white p-6 md:p-12 rounded-[32px] md:rounded-[40px] shadow-2xl w-full max-w-sm text-center flex flex-col items-center relative">
+            <h2 class="text-2xl md:text-3xl font-black text-slate-800 mb-1">¡Exitosa!</h2>
+            <p class="text-slate-500 font-bold text-xs md:text-sm mb-4">El cliente debe fotografiar el código:</p>
+            <div class="bg-slate-100 p-3 md:p-4 rounded-2xl md:rounded-3xl mb-4 shadow-inner"><div id="qr-container" class="bg-white p-2 rounded-xl"></div></div>
+            <div class="text-4xl md:text-5xl font-black text-orange-500 tracking-tighter mb-6 bg-orange-50 px-6 py-2 rounded-2xl border border-orange-100" id="qr-codigo-texto"></div>
+            <button onclick="cerrarModalQR()" class="w-full bg-slate-900 text-white py-3 md:py-4 rounded-[16px] font-black text-base md:text-lg shadow-lg hover:bg-slate-800 transition-colors">NUEVA VENTA</button>
+        </div>
+    </div>
+
+    <div id="modal-buzon" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[300] no-print p-4">
+        <div class="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row gap-6 md:gap-8 relative">
+            <div class="w-full md:w-1/3 bg-slate-50 p-6 rounded-[24px] border border-slate-200 text-center flex flex-col items-center justify-center">
+                <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-2xl mb-2">📥</div>
+                <h3 class="font-black text-xl text-slate-800 mb-1">QR del Buzón</h3>
+                <p class="text-[10px] font-bold text-slate-500 mb-4 px-4">Imprime este código y pégalo en la pared para que la gente envíe sugerencias desde su celular.</p>
+                <div class="bg-white p-3 rounded-2xl shadow-sm mb-4 border border-slate-100"><div id="qr-buzon-container"></div></div>
+                <button onclick="imprimirCartelBuzon()" class="w-full bg-purple-600 text-white py-3 rounded-xl font-black hover:bg-purple-700 shadow-md transition-colors">🖨️ Imprimir Cartel (A4)</button>
+            </div>
+            
+            <div class="w-full md:w-2/3 flex flex-col overflow-hidden">
+                <div class="flex justify-between items-end mb-4 border-b border-slate-200 pb-4">
+                    <h3 class="text-2xl font-black text-slate-800 tracking-tight">Comunidad</h3>
+                    <button onclick="cerrarModalGenerico('modal-buzon')" class="text-slate-400 font-bold hover:text-slate-600 bg-slate-100 px-3 py-1 rounded-lg text-sm">Cerrar</button>
+                </div>
+                <div id="lista-comentarios" class="flex-1 overflow-y-auto space-y-3 pr-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-producto" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4">
         <div class="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col text-center">
             <h2 id="titulo-modal-producto" class="text-xl md:text-2xl font-black mb-4 md:mb-6 text-slate-800">Gestión de Productos</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 flex-1 overflow-hidden">
@@ -45,3 +301,17 @@
             <button onclick="cerrarModalGenerico('modal-producto')" class="mt-4 md:mt-6 text-slate-400 font-bold hover:text-slate-600 transition-colors text-sm">Cerrar Ventana</button>
         </div>
     </div>
+
+    <div id="modal-clubes" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-6 lg:p-8 rounded-[32px] lg:rounded-[40px] shadow-2xl w-full max-w-[500px] flex flex-col max-h-[85vh]"><h2 class="text-xl lg:text-2xl font-black mb-4 lg:mb-6">Gestionar Clubes</h2><div class="space-y-3 bg-slate-50 p-4 lg:p-6 rounded-[24px] lg:rounded-[32px] mb-4 lg:mb-6 border border-slate-100"><input type="text" id="club-nombre" placeholder="Nombre del Club" class="w-full p-3 lg:p-4 border-2 rounded-xl lg:rounded-2xl outline-none font-bold text-sm lg:text-base"><input type="text" id="club-logo" placeholder="URL Logo del Club" class="w-full p-3 lg:p-4 border-2 rounded-xl lg:rounded-2xl outline-none font-bold text-sm lg:text-base"><button onclick="crearClub()" class="w-full bg-purple-600 text-white py-3 lg:py-4 rounded-[16px] lg:rounded-[20px] font-black shadow-lg mt-2 hover:bg-purple-700 text-sm lg:text-base">CREAR CLUB</button></div><div id="lista-clubes-db" class="flex-1 overflow-y-auto space-y-2 pr-2"></div><button onclick="cerrarModalGenerico('modal-clubes')" class="mt-4 text-slate-400 font-bold text-sm">Cerrar</button></div></div>
+    <div id="modal-deportes" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-6 lg:p-8 rounded-[32px] lg:rounded-[40px] shadow-2xl w-full max-w-[550px] flex flex-col max-h-[90vh]"><h2 class="text-xl lg:text-2xl font-black mb-4 lg:mb-6 text-slate-800">Subcomisiones</h2><div class="space-y-3 bg-slate-50 p-4 lg:p-6 rounded-[24px] lg:rounded-[32px] mb-4 lg:mb-6 border border-slate-100"><label id="label-dep-club" class="block text-[10px] lg:text-xs font-bold text-slate-500 ml-2 uppercase hidden">Crear en el Club:</label><select id="dep-club" class="w-full p-3 lg:p-4 border-2 rounded-xl lg:rounded-2xl font-black bg-white cursor-pointer hidden text-sm lg:text-base"></select><input type="text" id="dep-nombre" placeholder="Nombre (Ej: BASKET)" class="w-full p-3 lg:p-4 border-2 rounded-xl lg:rounded-2xl outline-none font-bold text-sm lg:text-base"><input type="text" id="dep-imagen" placeholder="URL Logo de Subcomisión" class="w-full p-3 lg:p-4 border-2 rounded-xl lg:rounded-2xl outline-none font-bold text-sm lg:text-base"><button onclick="crearDeporte()" class="w-full bg-amber-500 text-white py-3 lg:py-4 rounded-[16px] lg:rounded-[20px] font-black shadow-lg mt-2 hover:bg-amber-600 text-sm lg:text-base">CREAR DEPORTE</button></div><div id="lista-deportes-db" class="flex-1 overflow-y-auto space-y-2 pr-2"></div><button onclick="cerrarModalGenerico('modal-deportes')" class="mt-4 text-slate-400 font-bold text-center text-sm">Cerrar</button></div></div>
+    <div id="modal-usuarios" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[150] no-print p-4"><div class="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col text-center"><h2 class="text-xl md:text-2xl font-black mb-4 md:mb-6 text-slate-800">Gestión de Personal</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 flex-1 overflow-hidden"><div class="space-y-3 bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 text-left overflow-y-auto shadow-inner"><input type="text" id="user-nombre" placeholder="Nombre (Ej: Juan Perez)" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base"><input type="email" id="user-email" placeholder="Email (Usuario Login)" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base"><input type="password" id="user-pass" placeholder="Contraseña" class="w-full p-3 md:p-4 border-2 rounded-xl outline-none font-bold focus:border-blue-500 text-sm md:text-base"><label class="block text-[10px] md:text-xs font-bold text-slate-500 ml-2 mt-2 uppercase">Jerarquía / Rol</label><select id="user-rol" class="w-full p-3 md:p-4 border-2 rounded-xl font-black bg-white cursor-pointer text-sm md:text-base" onchange="adaptarFormUsuario()"></select><label id="label-club" class="block text-[10px] md:text-xs font-bold text-slate-500 ml-2 mt-2 uppercase hidden">Pertenece al Club</label><select id="user-club" class="w-full p-3 md:p-4 border-2 rounded-xl font-black bg-white cursor-pointer hidden text-sm md:text-base" onchange="cargarDeportesEnSelect()"></select><label id="label-deporte" class="block text-[10px] md:text-xs font-bold text-slate-500 ml-2 mt-2 uppercase hidden">Pertenece a la Subcomisión</label><select id="user-deporte" class="w-full p-3 md:p-4 border-2 rounded-xl font-black bg-white cursor-pointer hidden text-sm md:text-base"></select><button onclick="crearUsuario()" class="w-full bg-slate-900 text-white py-3 md:py-4 rounded-xl font-black shadow-lg mt-4 hover:bg-slate-800 transition-colors text-sm md:text-base">REGISTRAR USUARIO</button></div><div class="flex flex-col overflow-hidden bg-slate-50 p-4 md:p-6 rounded-[20px] md:rounded-[32px] border border-slate-100 shadow-inner"><h3 class="font-black text-slate-400 mb-2 md:mb-4 text-left uppercase text-[10px] md:text-xs tracking-widest">Usuarios Registrados</h3><div id="lista-usuarios-db" class="flex-1 overflow-y-auto space-y-2 pr-2 text-left"></div></div></div><button onclick="cerrarModalGenerico('modal-usuarios')" class="mt-4 md:mt-6 text-slate-400 font-bold hover:text-slate-600 transition-colors text-sm">Cerrar Ventana</button></div></div>
+    <div id="modal-gasto" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-8 md:p-10 rounded-[32px] md:rounded-[48px] w-full max-w-[400px] text-center shadow-2xl"><div class="w-12 h-12 md:w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4">💸</div><h2 class="text-xl md:text-2xl font-black mb-6 md:mb-8">Retiro de Caja</h2><input type="text" id="gasto-desc" placeholder="Concepto" class="w-full p-3 md:p-4 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-3 md:mb-4 outline-none font-bold text-sm md:text-base"><input type="number" inputmode="numeric" id="gasto-monto" placeholder="Monto ($)" class="w-full p-4 md:p-5 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-6 md:mb-8 outline-none text-2xl md:text-3xl font-black text-rose-500 text-center"><div class="flex gap-3 md:gap-4"><button onclick="cerrarModalGenerico('modal-gasto')" class="flex-1 font-bold text-slate-400 text-sm md:text-base">Cancelar</button><button onclick="guardarGasto()" class="flex-1 bg-rose-500 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-base">REGISTRAR</button></div></div></div>
+    <div id="modal-cierre" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] w-full max-w-md shadow-2xl"><div id="detalle-cierre"></div><div id="botones-cierre-modal" class="mt-4 md:mt-6"></div></div></div>
+    <div id="modal-movimiento" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[200] no-print p-4"><div class="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[48px] shadow-2xl w-full max-w-sm text-center"><div id="icono-movimiento" class="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl mx-auto mb-4"></div><h2 id="titulo-movimiento" class="text-xl md:text-2xl font-black mb-6 text-slate-800">Registro</h2><input type="hidden" id="movimiento-tipo"><div class="mb-3 text-left"><label class="text-[10px] font-bold text-slate-500 uppercase ml-2 block mb-1">Cuenta Origen</label><select id="movimiento-origen" class="w-full p-3 md:p-4 border-2 bg-slate-50 rounded-xl md:rounded-2xl font-black outline-none focus:border-blue-500 text-sm md:text-base"><option value="EFECTIVO">💵 EFECTIVO (Caja Fuerte)</option><option value="BANCO">🏦 BANCO (Transferencias/CBU)</option><option value="MUTUAL">🏛️ MUTUAL</option></select></div><div id="contenedor-destino" class="mb-3 text-left hidden"><label class="text-[10px] font-bold text-slate-500 uppercase ml-2 block mb-1 text-blue-600">Cuenta Destino</label><select id="movimiento-destino" class="w-full p-3 md:p-4 border-2 bg-blue-50 border-blue-200 rounded-xl md:rounded-2xl font-black outline-none focus:border-blue-500 text-sm md:text-base text-blue-800"><option value="EFECTIVO">💵 EFECTIVO (Caja Fuerte)</option><option value="BANCO">🏦 BANCO (Transferencias/CBU)</option><option value="MUTUAL">🏛️ MUTUAL</option></select></div><input type="text" id="movimiento-concepto" placeholder="Concepto" class="w-full p-3 md:p-4 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-3 md:mb-4 outline-none font-bold focus:border-blue-500 text-sm md:text-base"><input type="number" inputmode="numeric" id="movimiento-monto" placeholder="Monto ($)" class="w-full p-4 md:p-5 border-2 bg-slate-50 rounded-xl md:rounded-2xl mb-6 md:mb-8 outline-none text-2xl md:text-3xl font-black text-center focus:border-blue-500"><div class="flex gap-3 md:gap-4"><button onclick="cerrarModalGenerico('modal-movimiento')" class="flex-1 font-bold text-slate-400 hover:text-slate-600 text-sm md:text-base">Cancelar</button><button id="btn-guardar-mov" onclick="guardarMovimiento()" class="flex-1 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black shadow-lg text-sm md:text-base">GUARDAR</button></div></div></div>
+
+    <div id="ticket-impresion" style="display: none;"></div>
+    <div id="cartel-impresion" style="display: none;"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
