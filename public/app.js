@@ -200,7 +200,7 @@ async function cargarDashboard(clubIdToView = null) {
 }
 
 // =========================================================
-// MÓDULO: BUZÓN DE SUGERENCIAS Y QR (IMPRESIÓN A4)
+// MÓDULO: BUZÓN DE SUGERENCIAS Y QR (IMPRESIÓN A4 ESTRICTA)
 // =========================================================
 async function abrirBuzonSugerencias() {
     const contenedorQR = document.getElementById('qr-buzon-container');
@@ -220,7 +220,7 @@ async function abrirBuzonSugerencias() {
     abrirModal('modal-buzon');
 }
 
-// NUEVA FUNCIÓN PARA IMPRIMIR CARTEL A4
+// LÓGICA REFINADA PARA QUE OCUPE SÓLO 1 HOJA A4
 function imprimirCartelBuzon() {
     const canvas = document.querySelector('#qr-buzon-container canvas');
     if (!canvas) {
@@ -231,32 +231,31 @@ function imprimirCartelBuzon() {
     const qrDataUrl = canvas.toDataURL("image/png");
     const cartel = document.getElementById('cartel-impresion');
     
+    // Contenedor súper medido para no rebasar el 100vh
     cartel.innerHTML = `
-        <div style="text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; padding: 20px;">
-            <h1 style="font-size: 40px; font-weight: 900; margin-bottom: 5px; color: #0f172a;">${usuarioActual.club_nombre}</h1>
-            <h2 style="font-size: 24px; color: #4f46e5; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2>
+        <div style="text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; width: 100%; max-width: 800px; padding: 20px; box-sizing: border-box;">
+            <h1 style="font-size: 40px; font-weight: 900; margin: 0 0 5px 0; color: #0f172a;">${usuarioActual.club_nombre}</h1>
+            <h2 style="font-size: 22px; color: #4f46e5; margin: 0 0 30px 0; text-transform: uppercase; letter-spacing: 2px;">${usuarioActual.deporte_nombre}</h2>
             
-            <div style="font-size: 80px; margin-bottom: 10px;">📥</div>
-            <h1 style="font-size: 55px; font-weight: 900; margin-bottom: 20px; color: #1e293b;">Buzón de Sugerencias</h1>
+            <div style="font-size: 70px; margin-bottom: 0;">📥</div>
+            <h1 style="font-size: 50px; font-weight: 900; margin: 0 0 15px 0; color: #1e293b;">Buzón de Sugerencias</h1>
             
-            <p style="font-size: 22px; color: #475569; margin-bottom: 50px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5;">
-                Tu opinión nos ayuda a mejorar. <b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.
+            <p style="font-size: 20px; color: #475569; margin: 0 auto 35px auto; max-width: 600px; line-height: 1.4;">
+                Tu opinión nos ayuda a mejorar. <br><b>Escanea este código con la cámara de tu celular</b> para dejarnos un mensaje, queja o felicitación.
             </p>
             
-            <div style="border: 8px solid #0f172a; border-radius: 32px; display: inline-block; padding: 20px; margin-bottom: 50px;">
-                <img src="${qrDataUrl}" style="width: 350px; height: 350px; display: block;" />
+            <div style="border: 6px solid #0f172a; border-radius: 24px; display: inline-block; padding: 15px; margin-bottom: 35px;">
+                <img src="${qrDataUrl}" style="width: 300px; height: 300px; display: block;" />
             </div>
             
-            <p style="font-size: 18px; font-weight: bold; color: #94a3b8;">¡Gracias por ser parte de nuestra comunidad!</p>
+            <p style="font-size: 16px; font-weight: bold; color: #94a3b8; margin: 0;">¡Gracias por ser parte de nuestra comunidad!</p>
         </div>
     `;
 
-    // Activamos el motor de A4 en el CSS agregando esta clase al body
     document.body.classList.add('printing-poster');
     
     setTimeout(() => {
         window.print();
-        // Limpiamos al terminar para que el POS siga imprimiendo tickets de 80mm
         document.body.classList.remove('printing-poster');
         cartel.innerHTML = ''; 
     }, 300);
@@ -377,14 +376,6 @@ async function confirmarVenta() {
 }
 function limpiarVentaExitosa() { carrito = []; document.getElementById('input-paga-con').value = ''; actualizarCarrito(); cargarProductos(); document.getElementById('ticket-impresion').style.display = 'none'; document.getElementById('buscador').focus(); }
 
-function mostrarModalQR(codigo) {
-    document.getElementById('qr-codigo-texto').innerText = codigo;
-    const container = document.getElementById('qr-container'); container.innerHTML = ''; 
-    qrcodeGenerador = new QRCode(container, { text: codigo, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
-    document.getElementById('modal-qr').classList.replace('hidden', 'flex');
-}
-function cerrarModalQR() { document.getElementById('modal-qr').classList.replace('flex', 'hidden'); limpiarVentaExitosa(); }
-
 function verDespacho() {
     document.getElementById('panel-dashboard').classList.add('hidden');
     document.getElementById('panel-pos').classList.add('hidden');
@@ -447,4 +438,3 @@ async function ejecutarCierreDefinitivo() {
 }
 
 function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Gastos/Retiros:</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
-function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
