@@ -5,14 +5,17 @@ let tokenGlobal = null;
 let carrito = []; 
 let metodoSeleccionado = 'Efectivo'; 
 let listaProductosGlobal = []; 
+let clubesGlobal = [];     // NUEVO: Memoria segura para clubes
+let deportesGlobal = [];   // NUEVO: Memoria segura para deportes
 let usuarioActual = null; 
 let cajaActualId = null; 
 let categoriaActiva = 'TODOS'; 
 let totalCarritoValor = 0; 
 let idProductoEditar = null; 
-let idClubEditar = null;         // NUEVO: Variable para saber qué club editamos
-let idDeporteEditar = null;      // NUEVO: Variable para saber qué deporte editamos
+let idClubEditar = null;         
+let idDeporteEditar = null;      
 let ticketCierreDatos = {};
+let qrcodeGenerador = null; 
 
 function authH() { return { 'Authorization': 'Bearer ' + tokenGlobal }; }
 function authJsonH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenGlobal }; }
@@ -110,6 +113,192 @@ function verPOS() {
     if (!cajaActualId) abrirModal('modal-apertura'); else { cargarProductos(); setTimeout(() => document.getElementById('buscador').focus(), 300); }
 }
 
+function abrirModal(id) { document.getElementById(id).classList.replace('hidden', 'flex'); }
+function cerrarModalGenerico(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
+
+// =========================================================
+// CRUD SEGURO: CLUBES (SIN ERRORES DE SINTAXIS)
+// =========================================================
+function limpiarFormClub() { 
+    idClubEditar = null; 
+    document.getElementById('club-nombre').value = ''; 
+    document.getElementById('club-logo').value = ''; 
+    document.getElementById('btn-guardar-club').innerText = 'CREAR CLUB'; 
+    document.getElementById('titulo-modal-club').innerText = 'Gestionar Clubes';
+}
+
+function abrirModalClubes() { 
+    limpiarFormClub(); 
+    listarClubes(); 
+    abrirModal('modal-clubes'); 
+}
+
+function abrirModalEditarClub(id) {
+    const c = clubesGlobal.find(x => x.id === id);
+    if(!c) return;
+    idClubEditar = id; 
+    document.getElementById('club-nombre').value = c.nombre; 
+    document.getElementById('club-logo').value = c.logo || '';
+    document.getElementById('btn-guardar-club').innerText = 'ACTUALIZAR CLUB';
+    document.getElementById('titulo-modal-club').innerText = 'Editar Club';
+}
+
+async function guardarClub() { 
+    const n = document.getElementById('club-nombre').value;
+    const l = document.getElementById('club-logo').value; 
+    if(!n) return; 
+    
+    if (idClubEditar) {
+        await fetch(`/clubes/${idClubEditar}`, { method:'PUT', headers: authJsonH(), body: JSON.stringify({nombre:n, logo:l}) });
+    } else {
+        await fetch('/clubes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, logo:l}) });
+    }
+    
+    listarClubes(); 
+    limpiarFormClub();
+}
+
+async function toggleEstadoClub(id, nuevoEstado) { 
+    if(!confirm(`¿Seguro que deseas ${nuevoEstado === 'ACTIVO' ? 'Habilitar' : 'Suspender'} este club? Sus miembros no podrán ingresar.`)) return; 
+    await fetch(`/clubes/${id}/estado`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ estado: nuevoEstado }) }); 
+    listarClubes(); 
+}
+
+async function listarClubes() { 
+    const res = await fetch('/clubes', {headers: authH()}); 
+    clubesGlobal = await res.json(); // Guardamos en memoria global
+    
+    let html = '';
+    clubesGlobal.forEach(c => {
+        const nextEstado = c.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+        const badgeClass = c.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200';
+        const statusText = c.estado === 'ACTIVO' ? 'ON' : 'OFF';
+        const imgClass = c.estado === 'INACTIVO' ? 'grayscale opacity-50' : '';
+        const textClass = c.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800';
+
+        html += `
+        <div class="p-3 bg-white rounded-2xl mb-2 flex justify-between items-center border border-slate-200 shadow-sm group">
+            <div class="flex items-center gap-3">
+                <img src="${c.logo || 'https://via.placeholder.com/50'}" class="w-8 h-8 rounded-lg shadow-sm object-cover ${imgClass}">
+                <b class="text-xs md:text-sm ${textClass}">${c.nombre}</b>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="abrirModalEditarClub(${c.id})" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1.5 rounded-lg font-black hover:bg-blue-50 hover:text-blue-600 transition-colors">✏️</button>
+                <button onclick="toggleEstadoClub(${c.id}, '${nextEstado}')" class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest transition-colors ${badgeClass}">${statusText}</button>
+            </div>
+        </div>`;
+    });
+    
+    document.getElementById('lista-clubes-db').innerHTML = html; 
+}
+
+// =========================================================
+// CRUD SEGURO: DEPORTES (SIN ERRORES DE SINTAXIS)
+// =========================================================
+function limpiarFormDeporte() { 
+    idDeporteEditar = null; 
+    document.getElementById('dep-nombre').value = ''; 
+    document.getElementById('dep-imagen').value = ''; 
+    document.getElementById('btn-guardar-dep').innerText = 'CREAR DEPORTE'; 
+    document.getElementById('titulo-modal-deporte').innerText = 'Gestión de Subcomisiones';
+}
+
+async function abrirModalDeportes() { 
+    limpiarFormDeporte();
+    const selClub = document.getElementById('dep-club'); 
+    const lblClub = document.getElementById('label-dep-club'); 
+    
+    if (usuarioActual.rol === 'SYSADMIN') { 
+        lblClub.classList.remove('hidden'); 
+        selClub.classList.remove('hidden'); 
+        const res = await fetch('/clubes', {headers:authH()}); 
+        const clubes = await res.json(); 
+        selClub.innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); 
+    } else { 
+        lblClub.classList.add('hidden'); 
+        selClub.classList.add('hidden'); 
+    } 
+    
+    listarDeportes(); 
+    abrirModal('modal-deportes'); 
+}
+
+function abrirModalEditarDeporte(id) {
+    const d = deportesGlobal.find(x => x.id === id);
+    if(!d) return;
+    
+    idDeporteEditar = id; 
+    document.getElementById('dep-nombre').value = d.nombre; 
+    document.getElementById('dep-imagen').value = d.imagen || '';
+    if(document.getElementById('dep-club')) document.getElementById('dep-club').value = d.club_id;
+    document.getElementById('btn-guardar-dep').innerText = 'ACTUALIZAR DEPORTE';
+    document.getElementById('titulo-modal-deporte').innerText = 'Editar Subcomisión';
+}
+
+async function guardarDeporte() { 
+    const n = document.getElementById('dep-nombre').value;
+    const i = document.getElementById('dep-imagen').value;
+    const c = usuarioActual.rol === 'SYSADMIN' ? document.getElementById('dep-club').value : usuarioActual.club_id; 
+    if(!n || !c) return alert("Faltan datos"); 
+    
+    if(idDeporteEditar) {
+        await fetch(`/deportes/${idDeporteEditar}`, { method:'PUT', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) });
+    } else {
+        await fetch('/deportes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) });
+    }
+    
+    listarDeportes(); 
+    limpiarFormDeporte();
+}
+
+async function toggleEstadoDeporte(id, nuevoEstado) { 
+    if(!confirm(`¿Seguro que deseas ${nuevoEstado === 'ACTIVO' ? 'Habilitar' : 'Suspender'} esta subcomisión?`)) return; 
+    await fetch(`/deportes/${id}/estado`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ estado: nuevoEstado }) }); 
+    listarDeportes(); 
+}
+
+async function listarDeportes() { 
+    let url = usuarioActual.rol === 'SYSADMIN' ? '/deportes' : `/deportes/${usuarioActual.club_id}`; 
+    const res = await fetch(url, {headers:authH()}); 
+    deportesGlobal = await res.json(); // Guardamos en memoria global
+    
+    let html = '';
+    deportesGlobal.forEach(d => {
+        const nextEstado = d.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+        const badgeClass = d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200';
+        const statusText = d.estado === 'ACTIVO' ? 'ON' : 'OFF';
+        const imgClass = d.estado === 'INACTIVO' ? 'grayscale opacity-50' : '';
+        const txtClass = d.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800';
+
+        let adminBadge = usuarioActual.rol === 'SYSADMIN' && d.club_nombre ? `<p class="text-[9px] text-slate-400 uppercase tracking-widest">${d.club_nombre}</p>` : '';
+        
+        let toggleBtn = usuarioActual.rol === 'SYSADMIN' 
+            ? `<button onclick="toggleEstadoDeporte(${d.id}, '${nextEstado}')" class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest transition-colors ${badgeClass}">${statusText}</button>` 
+            : `<span class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${d.estado}</span>`;
+
+        html += `
+        <div class="p-3 bg-white rounded-2xl mb-2 flex justify-between items-center border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-3">
+                <img src="${d.imagen || 'https://via.placeholder.com/50'}" class="w-8 h-8 rounded-lg object-cover ${imgClass}">
+                <div>
+                    <b class="text-xs md:text-sm ${txtClass}">${d.nombre}</b>
+                    ${adminBadge}
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="abrirModalEditarDeporte(${d.id})" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1.5 rounded-lg font-black hover:bg-blue-50 hover:text-blue-600 transition-colors">✏️</button>
+                ${toggleBtn}
+            </div>
+        </div>`;
+    });
+    
+    document.getElementById('lista-deportes-db').innerHTML = html; 
+}
+
+
+// =========================================================
+// DASHBOARDS Y AUDITORIAS
+// =========================================================
 async function verDashboardSport(overrideDeporteId = null, overrideNombre = null) {
     document.getElementById('panel-pos').classList.add('hidden');
     document.getElementById('panel-despacho').classList.add('hidden');
@@ -210,141 +399,8 @@ async function cargarComentariosBuzon() {
 
 async function eliminarComentario(id) { if(confirm("¿Borrar este mensaje permanentemente?")) { await fetch(`/comentarios/${id}`, { method: 'DELETE', headers: authH() }); cargarComentariosBuzon(); } }
 
-function abrirModal(id) { document.getElementById(id).classList.replace('hidden', 'flex'); }
-function cerrarModalGenerico(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
-
 // =========================================================
-// CRUD MAESTRO: CLUBES (AHORA CON EDICIÓN Y SUSPENSIÓN)
-// =========================================================
-function limpiarFormClub() { 
-    idClubEditar = null; 
-    document.getElementById('club-nombre').value = ''; 
-    document.getElementById('club-logo').value = ''; 
-    document.getElementById('btn-guardar-club').innerText = 'CREAR CLUB'; 
-    document.getElementById('titulo-modal-club').innerText = 'Gestionar Clubes';
-}
-
-function abrirModalClubes() { 
-    limpiarFormClub(); 
-    listarClubes(); 
-    abrirModal('modal-clubes'); 
-}
-
-function abrirModalEditarClub(id, nombre, logo) {
-    idClubEditar = id; 
-    document.getElementById('club-nombre').value = nombre; 
-    document.getElementById('club-logo').value = logo;
-    document.getElementById('btn-guardar-club').innerText = 'ACTUALIZAR CLUB';
-    document.getElementById('titulo-modal-club').innerText = 'Editar Club';
-}
-
-async function guardarClub() { 
-    const n = document.getElementById('club-nombre').value;
-    const l = document.getElementById('club-logo').value; 
-    if(!n) return; 
-    
-    if (idClubEditar) {
-        await fetch(`/clubes/${idClubEditar}`, { method:'PUT', headers: authJsonH(), body: JSON.stringify({nombre:n, logo:l}) });
-    } else {
-        await fetch('/clubes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, logo:l}) });
-    }
-    
-    listarClubes(); 
-    limpiarFormClub();
-}
-
-async function toggleEstadoClub(id, nuevoEstado) { 
-    if(!confirm(`¿Seguro que deseas ${nuevoEstado === 'ACTIVO' ? 'Habilitar' : 'Suspender'} este club? Sus miembros no podrán ingresar.`)) return; 
-    await fetch(`/clubes/${id}/estado`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ estado: nuevoEstado }) }); 
-    listarClubes(); 
-}
-
-async function listarClubes() { 
-    const res = await fetch('/clubes', {headers: authH()}); 
-    const data = await res.json(); 
-    document.getElementById('lista-clubes-db').innerHTML = data.map(c => `
-        <div class="p-3 bg-white rounded-2xl mb-2 flex justify-between items-center border border-slate-200 shadow-sm group">
-            <div class="flex items-center gap-3">
-                <img src="${c.logo}" class="w-8 h-8 rounded-lg shadow-sm object-cover ${c.estado === 'INACTIVO' ? 'grayscale opacity-50' : ''}">
-                <b class="text-xs md:text-sm ${c.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800'}">${c.nombre}</b>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="abrirModalEditarClub(${c.id}, '${c.nombre.replace(/'/g, "\\'")}', '${c.logo}')" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1.5 rounded-lg font-black hover:bg-blue-50 hover:text-blue-600 transition-colors">✏️</button>
-                <button onclick="toggleEstadoClub(${c.id}, '${c.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'})" class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest transition-colors ${c.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">${c.estado === 'ACTIVO' ? 'ON' : 'OFF'}</button>
-            </div>
-        </div>
-    `).join(''); 
-}
-
-// =========================================================
-// CRUD MAESTRO: DEPORTES (AHORA CON EDICIÓN)
-// =========================================================
-function limpiarFormDeporte() { 
-    idDeporteEditar = null; 
-    document.getElementById('dep-nombre').value = ''; 
-    document.getElementById('dep-imagen').value = ''; 
-    document.getElementById('btn-guardar-dep').innerText = 'CREAR DEPORTE'; 
-    document.getElementById('titulo-modal-deporte').innerText = 'Gestión de Subcomisiones';
-}
-
-async function abrirModalDeportes() { 
-    limpiarFormDeporte();
-    const selClub = document.getElementById('dep-club'); const lblClub = document.getElementById('label-dep-club'); 
-    if (usuarioActual.rol === 'SYSADMIN') { lblClub.classList.remove('hidden'); selClub.classList.remove('hidden'); const res = await fetch('/clubes', {headers:authH()}); const clubes = await res.json(); selClub.innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); } 
-    else { lblClub.classList.add('hidden'); selClub.classList.add('hidden'); } 
-    listarDeportes(); abrirModal('modal-deportes'); 
-}
-
-function abrirModalEditarDeporte(id, nombre, imagen, club_id) {
-    idDeporteEditar = id; 
-    document.getElementById('dep-nombre').value = nombre; 
-    document.getElementById('dep-imagen').value = imagen;
-    if(document.getElementById('dep-club')) document.getElementById('dep-club').value = club_id;
-    document.getElementById('btn-guardar-dep').innerText = 'ACTUALIZAR DEPORTE';
-    document.getElementById('titulo-modal-deporte').innerText = 'Editar Subcomisión';
-}
-
-async function guardarDeporte() { 
-    const n = document.getElementById('dep-nombre').value;
-    const i = document.getElementById('dep-imagen').value;
-    const c = usuarioActual.rol === 'SYSADMIN' ? document.getElementById('dep-club').value : usuarioActual.club_id; 
-    if(!n || !c) return alert("Faltan datos"); 
-    
-    if(idDeporteEditar) {
-        await fetch(`/deportes/${idDeporteEditar}`, { method:'PUT', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) });
-    } else {
-        await fetch('/deportes', { method:'POST', headers: authJsonH(), body: JSON.stringify({nombre:n, imagen:i, club_id: c}) });
-    }
-    
-    listarDeportes(); 
-    limpiarFormDeporte();
-}
-
-async function toggleEstadoDeporte(id, nuevoEstado) { if(!confirm(`¿Seguro?`)) return; await fetch(`/deportes/${id}/estado`, { method: 'PUT', headers: authJsonH(), body: JSON.stringify({ estado: nuevoEstado }) }); listarDeportes(); }
-
-async function listarDeportes() { 
-    let url = usuarioActual.rol === 'SYSADMIN' ? '/deportes' : `/deportes/${usuarioActual.club_id}`; 
-    const res = await fetch(url, {headers:authH()}); 
-    const deps = await res.json(); 
-    document.getElementById('lista-deportes-db').innerHTML = deps.map(d => `
-        <div class="p-3 bg-white rounded-2xl mb-2 flex justify-between items-center border border-slate-200 shadow-sm">
-            <div class="flex items-center gap-3">
-                <img src="${d.imagen || 'https://via.placeholder.com/50'}" class="w-8 h-8 rounded-lg object-cover ${d.estado === 'INACTIVO' ? 'grayscale opacity-50' : ''}">
-                <div>
-                    <b class="text-xs md:text-sm ${d.estado === 'INACTIVO' ? 'text-slate-400 line-through' : 'text-slate-800'}">${d.nombre}</b>
-                    ${usuarioActual.rol === 'SYSADMIN' && d.club_nombre ? `<p class="text-[9px] text-slate-400 uppercase tracking-widest">${d.club_nombre}</p>` : ''}
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="abrirModalEditarDeporte(${d.id}, '${d.nombre.replace(/'/g, "\\'")}', '${d.imagen}', ${d.club_id})" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1.5 rounded-lg font-black hover:bg-blue-50 hover:text-blue-600 transition-colors">✏️</button>
-                ${usuarioActual.rol === 'SYSADMIN' ? `<button onclick="toggleEstadoDeporte(${d.id}, '${d.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'})" class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest transition-colors ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">${d.estado === 'ACTIVO' ? 'ON' : 'OFF'}</button>` : `<span class="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest ${d.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${d.estado}</span>`}
-            </div>
-        </div>
-    `).join(''); 
-}
-
-// =========================================================
-// RESTO DEL CÓDIGO (USUARIOS Y MOVIMIENTOS)
+// USUARIOS
 // =========================================================
 async function abrirModalUsuarios() { const selRol = document.getElementById('user-rol'); if(usuarioActual.rol === 'SYSADMIN') { selRol.innerHTML = `<option value="CLUBADMIN">PRESIDENTE DE CLUB</option><option value="SPORTADMIN">ADMIN SUBCOMISIÓN</option><option value="CAJERO">CAJERO</option>`; const res = await fetch('/clubes', {headers:authH()}); const clubes = await res.json(); document.getElementById('user-club').innerHTML = clubes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); } else if(usuarioActual.rol === 'CLUBADMIN') { selRol.innerHTML = `<option value="SPORTADMIN">ADMIN SUBCOMISIÓN</option><option value="CAJERO">CAJERO</option>`; document.getElementById('user-club').innerHTML = `<option value="${usuarioActual.club_id}">${usuarioActual.club_nombre}</option>`; } else if(usuarioActual.rol === 'SPORTADMIN') { selRol.innerHTML = '<option value="CAJERO">CAJERO</option>'; } await adaptarFormUsuario(); listarUsuarios(); abrirModal('modal-usuarios'); }
 async function adaptarFormUsuario() { const rolSel = document.getElementById('user-rol').value; const selClub = document.getElementById('user-club'); const lblClub = document.getElementById('label-club'); const selDep = document.getElementById('user-deporte'); const lblDep = document.getElementById('label-deporte'); if(usuarioActual.rol === 'SYSADMIN') { selClub.classList.remove('hidden'); lblClub.classList.remove('hidden'); } else { selClub.classList.add('hidden'); lblClub.classList.add('hidden'); } if(rolSel === 'CLUBADMIN') { selDep.classList.add('hidden'); lblDep.classList.add('hidden'); } else { if(usuarioActual.rol === 'SPORTADMIN') { selDep.classList.add('hidden'); lblDep.classList.add('hidden'); selDep.innerHTML = `<option value="${usuarioActual.deporte_id}"></option>`; } else { selDep.classList.remove('hidden'); lblDep.classList.remove('hidden'); await cargarDeportesEnSelect(); } } }
@@ -669,4 +725,6 @@ async function ejecutarCierreDefinitivo() {
 }
 
 function imprimirCierreTicket() { const t = document.getElementById('ticket-impresion'); t.style.display = 'block'; t.innerHTML = `<div style="text-align:center; margin-bottom:15px;"><h2 style="margin:0; font-size: 16px; font-weight: bold;">CIERRE DE TURNO</h2><p style="margin:2px 0; font-size: 10px;">${new Date().toLocaleString('es-AR')}</p><p style="margin:2px 0; font-size: 10px; font-weight: bold;">CAJERO: ${usuarioActual.nombre.toUpperCase()}</p></div><div style="border-top:1px dashed #000; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Fondo Inicial:</span> <span>$${ticketCierreDatos.apertura}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Ventas Efectivo:</span> <span>$${ticketCierreDatos.totalEfectivo}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Compras (Gastos):</span> <span>-$${ticketCierreDatos.gastos}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Retiros:</span> <span>-$${ticketCierreDatos.retiros}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold; font-size:14px;"><span>EFECTIVO EN CAJA:</span> <span>$${ticketCierreDatos.efectivoEnCaja}</span></div></div><div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; font-size:12px;"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Transferencias:</span> <span>$${ticketCierreDatos.totalTransferencia}</span></div><div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px solid #000; padding-top:5px; font-weight:bold;"><span>TOTAL FACTURADO:</span> <span>$${ticketCierreDatos.totalFacturado}</span></div></div><div style="text-align:center; font-size:10px; margin-top:30px; border-top:1px dashed #000; padding-top:20px;">Firma Responsable<br><br><br>___________________________</div>`; window.print(); t.style.display = 'none'; }
-function toggleHistorial() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
+
+// FUNCION AHORA SEGURA A NIVEL GLOBAL
+window.toggleHistorial = function() { document.getElementById('contenedor-historial').classList.toggle('abierto'); }
